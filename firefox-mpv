@@ -1,0 +1,107 @@
+#!/bin/bash
+
+#                                      _
+#         ___ _ __   ___ _ __ ___   __| |
+#        / __| '_ \ / __| '_ ` _ \ / _` |
+#        \__ | |_) | (__| | | | | | (_| |
+#        |___| .__/ \___|_| |_| |_|\__,_|
+#             |_|
+#
+#                 Firefox > mpv
+#               Created by: spcmd
+#           http://spcmd.github.io
+#           https://github.com/spcmd
+#           https://gist.github.com/spcmd
+
+
+# ========================================== #
+# ========== CONFIGURABLE OPTIONS ========== #
+# ========================================== #
+
+# Spotify: stop the music when the video starts (requires dbus)
+# Options: yes (or leave it blank if you don't want to use this)
+SPOTIFY_AUTO_STOP="yes"
+
+# Spotify: play the music after closing mpv (requires dbus)
+# Options: yes (or leave it blank if you don't want to use this)
+SPOTIFY_AUTO_PLAY=""
+
+# Set "yes" if you want to log the watched videos into a html file
+# Works with youtube and vimeo videos only
+# Options: yes (or leave it blank if you don't want to use this)
+LOGGING="yes"
+
+# Time and date format for logging
+DATETIME=$(date "+%Y.%m.%d. %H:%M:%S")
+
+# The log file and the temporary file (the latter will be deleted automatically!)
+LOGFILE=~/.firefox-mpv-history.html
+LOGTEMP=~/.firefox-mpv-history-temp
+
+# ========================================= #
+# ====== END OF CONFIGURABLE OPTIONS ====== #
+# ========================================= #
+
+# Stop Spotify when the video starts (if the option was set to "yes")
+if [[ $SPOTIFY_AUTO_STOP = "yes" ]]; then
+    dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop
+    # Send a message before the video starts
+    notify-send -t 2000 -i mpv "Firefox > mpv" "Starting video...\nSpotify stopped."
+else
+    notify-send -t 2000 -i mpv "Firefox > mpv" "Starting video..."
+fi
+
+#Play the video
+mpv $1
+
+# Play Spotify after closing mpv (if the option was set to "yes")
+if [[ $SPOTIFY_AUTO_PLAY = "yes" ]]; then
+    dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Play
+fi
+
+# --- Logging ---
+
+# Video stuff
+VIDEO_TITLE=$(youtube-dl --get-title $1)
+VIDEO_ID=$(youtube-dl --get-id $1)
+VIDEO_THUMBNAIL=$(youtube-dl --get-thumbnail $1)
+VIDEO_DURATION=$(youtube-dl --get-duration $1)
+
+# Video url for debugging
+VIDEO_URL=$(youtube-dl --get-url $1)
+
+# Count the word "googlevideo" to filter out the very long playlist urls
+COUNT_GOOGLEVIDEO_WORD=$(grep -o "googlevideo" <<< $VIDEO_URL | wc -l)
+
+# If youtube video and the 'googlevideo' word count is = 1, so it's not a playlist with very long url
+if [[ $VIDEO_URL == *"googlevideo"* ]] && [[ $COUNT_GOOGLEVIDEO_WORD -eq 1 ]]; then
+	VIDEO_LINK="<a href='https://www.youtube.com/watch?v=$VIDEO_ID' target='_blank'>https://www.youtube.com/watch?v=$VIDEO_ID</a>"
+# Else if it's a vimeo url
+elif [[ $VIDEO_URL == *"vimeocdn"* ]]; then
+	VIDEO_LINK="<a href="http://vimeo.com/$VIDEO_ID" target='_blank'>http://vimeo.com/$VIDEO_ID</a>"
+else
+	VIDEO_LINK="(Not supported site or can't get proper url)"
+fi
+
+# Log watched videos if the option was set to "yes"
+if [[ $LOGGING = "yes" ]]; then
+
+	# Logging only if googlevideo word count = 1 (so it's not a playlist) OR if it's a vimeo url
+	if [[ $COUNT_GOOGLEVIDEO_WORD -eq 1 ]] || [[ $VIDEO_URL == *"vimeocdn"* ]]; then
+
+		# Logging: store log file contents in a temporary file
+		if [[ -f $LOGFILE ]]; then
+			cat $LOGFILE > $LOGTEMP
+		fi
+
+		## Logging: write contents to the log file
+		echo "<table style='border:solid 1px black;width:100%'><tr><td style='width:150px;'><img src='$VIDEO_THUMBNAIL' style='max-width:150px'></td><td>$DATETIME<br>$VIDEO_TITLE [$VIDEO_DURATION]<br>$VIDEO_LINK</td></tr></table>" > $LOGFILE
+
+		## Logging: append previous log contents from the temp file & delete the temp file
+		if [[ -f $LOGTEMP ]]; then
+			cat $LOGTEMP >> $LOGFILE
+			rm $LOGTEMP
+		fi
+
+	fi
+fi

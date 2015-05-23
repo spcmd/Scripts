@@ -1,0 +1,122 @@
+#!/bin/bash
+
+#                                      _
+#         ___ _ __   ___ _ __ ___   __| |
+#        / __| '_ \ / __| '_ ` _ \ / _` |
+#        \__ | |_) | (__| | | | | | (_| |
+#        |___| .__/ \___|_| |_| |_|\__,_|
+#             |_|
+#
+#              ignotifier-setbadge
+#               Created by: spcmd
+#           http://spcmd.github.io
+#           https://github.com/spcmd
+#           https://gist.github.com/spcmd
+#
+#  Change Firefox's Gmail Notififer addon's icon badge color
+#  Download: https://addons.mozilla.org/en-US/firefox/addon/gmail-notifier-restartless
+#  
+#  Usage: 
+#       Set your Firefox profile directory
+#       Set the addon's xpi filename (xpi package name)
+#       Set the new badge color via command line:
+#       /path/to/ignotifier-setbadge <bgcolor> <fgcolor>
+#       Colors are in hex format (e.g. #ff0000 #fff)
+#       
+
+# ================================== #
+# ====== CONFIGURABLE OPTIONS ====== #
+# ================================== #
+
+# Set the profile directory path
+# For example: ~/.mozilla/firefox/somestring.default
+PROFILE_DIR=~/.mozilla/firefox/ol49vr5b.default
+
+# Set the Gmail Notifier addon's package name
+# For example: jid0-somelongstring@jetpack.xpi
+# You can find it in the extensions directory
+XPI_FILE=jid0-GjwrPchS3Ugt7xydvqVK4DQk8Ls@jetpack.xpi
+
+# ========================================= #
+# ====== END OF CONFIGURABLE OPTIONS ====== #
+# ========================================= #
+
+
+# Setting the directories and the config files
+EXTENSION_DIR=$PROFILE_DIR/extensions
+IGNOTIFIER=$EXTENSION_DIR/$XPI_FILE
+TEMP_DIR=$EXTENSION_DIR/ignotifier-setbadge
+CONFIG_JS=./resources/ignotifier/lib/config.js
+SETTINGS_FILE=$PROFILE_DIR/ignotifier-setbadge-settings
+
+# Default colors in the addon's config.js (blue bg, white text)
+BG_ADDON_DEFAULT="#3366CC"
+FG_ADDON_DEFAULT="#fff"
+
+# Set new colors from the command line
+BG_NEW=$1
+FG_NEW=$2
+
+# If the addon package exists
+if [[ -f $IGNOTIFIER ]]; then
+
+    # Check whether the new colors have been set
+    if [[ $BG_NEW = "" ]] || [[ $FG_NEW = "" ]]; then
+        echo "ERROR: you didn't set the new colors. You have to set the background and the foreground (text color)."
+        echo "For example: ignotifier-setbadge #ff0000 #fff"
+        exit 1
+    fi
+
+    # Running the script for the first time
+    # Check whether the script settings file exists
+    # If not, create it and store the color values in it
+    if [[ ! -f $SETTINGS_FILE ]]; then
+
+        # Store the new values, so the script can find them
+        # next time when we change the colors
+        echo -e "$BG_NEW\n$FG_NEW" > $SETTINGS_FILE
+
+        # Running the script for the first time, 
+        # so we are looking for the addon's default colors
+        BG_REPLACE=$BG_ADDON_DEFAULT
+        FG_REPLACE=$FG_ADDON_DEFAULT
+
+    # Not a first time run
+    # If the script settings file exists, get the replaceable
+    # colors from it.
+    elif [[ -f $SETTINGS_FILE ]]; then
+
+        # Getting the colors (first line: bg, second line: fg)
+        BG_REPLACE=$(sed -n 1p $SETTINGS_FILE)
+        FG_REPLACE=$(sed -n 2p $SETTINGS_FILE)
+
+        # We have the colors to replace. Write the new colors
+        # to the file again, so the script can find them next time
+        echo -e "$BG_NEW\n$FG_NEW" > $SETTINGS_FILE        
+    fi
+
+    # Create a backup, create a temp dir
+    # Move the addon xpi to the temp dir
+    # Extract the xpi, change the color in the
+    # config file, make az xpi package again
+    # and move it back to its place, 
+    # then remove the junk
+    cp -r $IGNOTIFIER $PROFILE_DIR/$XPI_FILE.bak
+    mkdir -p $TEMP_DIR
+    mv $IGNOTIFIER $TEMP_DIR
+    cd $TEMP_DIR
+    unzip $XPI_FILE
+    rm $XPI_FILE
+    sed -i "s/$BG_REPLACE/$BG_NEW/g; s/$FG_REPLACE/$FG_NEW/g" $CONFIG_JS
+    zip -r $XPI_FILE .
+    mv $XPI_FILE $EXTENSION_DIR
+    cd
+    rm -r $TEMP_DIR
+    echo "DONE: Backup copy of the previous xpi file created in: $PROFILE_DIR/$XPI_FILE.bak"
+    echo "DONE: Gmail Notififer badge color changed successfully. Restart Firefox to see the new color."
+    exit 0
+
+else 
+    echo -e "ERROR: Can't find $IGNOTIFIER \nPlease check the ignotifier-setbadge script and set the correct PROFILE_DIR and XPI_FILE"
+    exit 1
+fi

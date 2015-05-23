@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# ========================================================= #
+# qxbacklight                                               #
+# Created by: spcmd                                         #
+# Website: http://spcmd.github.io                           #
+#          https://github.com/spcmd                         #
+#          https://gist.github.com/spcmd                    #
+# License: GNU GPLv3 - http://www.gnu.org/copyleft/gpl.html #
+# ========================================================= #
+
+# ================================== #
+# ====== CONFIGURABLE OPTIONS ====== #
+# ================================== #
+
+# Default brightness value (in percentage)
+# Use 'xbacklight -get' command to get the current brightness value, so you can set it here as a default
+# Since 'xbacklight -get' returns a floating point number (e.g. '17.989757') you should round this value to make an integer (e.g. '18'), and use this number as a default
+DEFAULT_BR=35
+
+# Decrease/increase brightness
+# This value (%) will be added (increase/brigtness up) or substracted (decrease/brigtness down) from the current brightness value
+STEP_AMOUNT=2
+
+# Send notification when setting the brightness 
+# Works as a feedback; you can set it to yes ("yes") or you can leave it empty ("") if you don't want a notification
+NOTIFY="yes"
+
+# ========================================= #
+# ====== END OF CONFIGURABLE OPTIONS ====== #
+# ========================================= #
+
+function --default {
+
+    xbacklight -set $DEFAULT_BR
+    echo "Brightness set to default: $DEFAULT_BR"
+    if [[ $NOTIFY = "yes" ]]; then
+         notify-send -i xfpm-brightness-lcd -t 100 "qxbacklight" "brightness set to default: $DEFAULT_BR"
+    fi
+}
+
+function --down {
+
+    # Get the current brightness value
+    GET_BR=$(xbacklight -get)
+    echo "Current, exact brightness: $GET_BR"
+    # Round the value
+    CURR_BR=$(printf "%.0f\n" "$GET_BR")
+    echo "Current, rounded brightness: $CURR_BR"
+    # Set the new brightness value
+    echo "Decreasing brightness by: $STEP_AMOUNT"
+    NEW_BR=$(( $CURR_BR - $STEP_AMOUNT ))
+    xbacklight -set $NEW_BR
+    # Show new value
+    if [[ $NOTIFY = "yes" ]]; then
+        notify-send -i xfpm-brightness-lcd -t 100 "qxbacklight" "brightness down by: $STEP_AMOUNT\nBrightness:$NEW_BR"
+    fi
+    echo "Brightness set to: $NEW_BR"
+}
+
+function --up {
+
+    # Get the current brightness value
+    GET_BR=$(xbacklight -get)
+    echo "Current, exact brightness: $GET_BR"
+    # Round the value
+    CURR_BR=$(printf "%.0f\n" "$GET_BR")
+    echo "Current, rounded brightness: $CURR_BR"
+    # Set the new brightness value
+    echo "Increasing brightness by: $STEP_AMOUNT"
+    NEW_BR=$(( $CURR_BR + $STEP_AMOUNT ))
+    xbacklight -set $NEW_BR
+    # Show new value
+    if [[ $NOTIFY = "yes" ]]; then
+        notify-send -i xfpm-brightness-lcd -t 100 "qxbacklight" "brightness up by: $STEP_AMOUNT\nBrightness:$NEW_BR"
+    fi
+    echo "Brightness set to: $NEW_BR"
+
+
+}
+
+function --help {
+
+
+    echo -e "\nUSAGE: qxbacklight [option]"
+    echo "OPTIONS:"
+    echo -e "\t--down\t\tBrightness down by STEP_AMOUNT (see SCRIPT CONFIGURATION)"
+    echo -e "\t--up\t\tBrightness up by STEP_AMOUNT (see SCRIPT CONFIGURATION)"
+    echo -e "\t--default\tSet brightness to DEFAULT_BR (see SCRIPT CONFIGURATION)"
+    echo -e "\nSCRIPT CONFIGURATION:"
+    echo -e "\t\t\tSTEP_AMOUNT is currently set to: $STEP_AMOUNT"
+    echo -e "\t\t\tDEFAULT_BR is currently set to: $DEFAULT_BR"
+    echo -e "\t\t\tNOTIFY is currently set to: $NOTIFY"
+    echo -e "\nNOTES:"
+    echo "qxbacklight uses xbacklight to set brightness"
+    echo "Brightness numbers are in percentage (%) of the maximum brightness."
+    echo -e "See xbacklight manual for more information (man xbacklight)\n"
+
+}
+
+# Use functions as "command options"
+$@
