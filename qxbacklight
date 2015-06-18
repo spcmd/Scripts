@@ -16,7 +16,7 @@
 # Default brightness value (in percentage)
 # Use 'xbacklight -get' command to get the current brightness value, so you can set it here as a default
 # Since 'xbacklight -get' returns a floating point number (e.g. '17.989757') you should round this value to make an integer (e.g. '18'), and use this number as a default
-DEFAULT_BR=35
+DEFAULT_BR=30
 
 # Decrease/increase brightness
 # This value (%) will be added (increase/brigtness up) or substracted (decrease/brigtness down) from the current brightness value
