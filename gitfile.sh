@@ -9,9 +9,9 @@
 #
 #                  gitfile.sh
 #               Created by: spcmd
-#           http:#spcmd.github.io
-#           https:#github.com/spcmd
-#           https:#gist.github.com/spcmd
+#           http://spcmd.github.io
+#           https://github.com/spcmd
+#           https://gist.github.com/spcmd
 #
 # gitfile.sh is a simple shell script which
 # allows you to download single files from
