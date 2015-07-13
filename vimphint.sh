@@ -29,6 +29,8 @@ cat << 'EOF' > $help_file
   <title>vimphint.sh > html</title>
   <style>
     body { 
+        background: #fff;
+        color: #000;
         font-family:monospace; 
         font-size:13px;
     }
