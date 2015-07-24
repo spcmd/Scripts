@@ -52,7 +52,7 @@ else
 fi
 
 #Play the video
-mpv $1
+mpv "$1"
 
 # Play Spotify after closing mpv (if the option was set to "yes")
 if [[ $SPOTIFY_AUTO_PLAY = "yes" ]]; then
