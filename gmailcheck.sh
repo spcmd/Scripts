@@ -17,17 +17,13 @@
 
 # Settings-----------------------------------------
 
-# Number of accounts we will check
-# It have to be set exactly!
-number_of_accounts=2
-
 # User/Pass for the accounts
 # For security reasons, reading the username from the account files and the passwords from a gpg file
-user1=$(cat $HOME/.mutt/account.1.gmail | grep -m 1 "imap_user" | awk '{gsub("\"", "", $4); print $4}')
-pw1=$(gpg2 -dq $HOME/.my-pwds.gpg | awk 'NR==1 {print $4}')
+user1=$(cat $HOME/.mutt/account.1.muttrc | grep -m 1 "imap_user" | awk '{gsub("\"", "", $4); print $4}')
+pw1=$(gpg2 -dq $HOME/.pwds-mutt.gpg | awk 'NR==1 {print $4}')
 
-user2=$(cat $HOME/.mutt/account.2.gmail | grep -m 1 "imap_user" | awk '{gsub("\"", "", $4); print $4}')
-pw2=$(gpg2 -dq $HOME/.my-pwds.gpg | awk 'NR==2 {print $4}')
+user2=$(cat $HOME/.mutt/account.2.muttrc | grep -m 1 "imap_user" | awk '{gsub("\"", "", $4); print $4}')
+pw2=$(gpg2 -dq $HOME/.pwds-mutt.gpg | awk 'NR==2 {print $4}')
 
 # Google atom feed url
 atom_feed_url="https://mail.google.com/mail/feed/atom"
@@ -36,6 +32,7 @@ atom_feed_url="https://mail.google.com/mail/feed/atom"
 file_newmail_count=$HOME/.mutt/newmail_count
 file_newmail_list=$HOME/.mutt/newmail_list
 mail_check_log=$HOME/.mutt/mail_check.log
+mail_error_log=$HOME/.mutt/mail_error.log
 
 # Account 1 feed-----------------------------------------
 mail_1_feed=$(curl -u $user1:$pw1 --silent $atom_feed_url)
@@ -82,7 +79,7 @@ if [[ $full_newmail_count -ge "1" ]]; then
     full_newmail_list="$mail_1_listing$mail_2_listing"
 
 else
-    full_newmail_list="\n No new mails. "
+    full_newmail_list="\n No new mail.\n Last check: $(date +%Y.%m.%d\ %H:%M:%S)"
 fi
 
 # Write the list and the count number to files
@@ -90,10 +87,10 @@ echo -e "$full_newmail_list" > $file_newmail_list
 echo -e "$full_newmail_count" > $file_newmail_count
 
 # Debug
-#echo -e "$full_newmail_list"
-#echo -e "$mail_1_newmail_count"
-#echo -e "$mail_2_newmail_count"
-#echo -e "$full_newmail_count"
+#echo -e "FULL_LIST: $full_newmail_list"
+#echo -e "FULL_COUNT: $full_newmail_count"
+#echo -e "MAIL_1_COUNT: $mail_1_newmail_count"
+#echo -e "MAIL_2_COUNT: $mail_2_newmail_count"
 
 # For awesomeWM --------------------------------------
 
