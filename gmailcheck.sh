@@ -34,6 +34,9 @@ file_newmail_list=$HOME/.mutt/newmail_list
 mail_check_log=$HOME/.mutt/mail_check.log
 mail_error_log=$HOME/.mutt/mail_error.log
 
+# Log the time and date of the check
+checkdatetime=$(date +%Y.%m.%d\ %H:%M:%S)
+
 # Account 1 feed-----------------------------------------
 mail_1_feed=$(curl -u $user1:$pw1 --silent $atom_feed_url)
 mail_1_account=$(echo "$mail_1_feed" | grep -o -E "[^[:space:]]+@gmail\.com" | head -n 1)
@@ -50,7 +53,7 @@ mail_2_newmail_count=$(echo "$mail_2_feed" | grep -E -o '<fullcount>[0-9]{1,3}</
 
 if [[ ! -f $mail_check_log ]]; then
     touch $mail_check_log
-    echo "Mail check log created at: $(date +%Y.%m.%d\ %H:%M:%S)" > $mail_check_log
+    echo "Mail check log created at: $checkdatetime" > $mail_check_log
 fi
 
 # Check mails--------------------------------------
@@ -76,10 +79,10 @@ if [[ $full_newmail_count -ge "1" ]]; then
     fi
 
     # Create the final list
-    full_newmail_list="$mail_1_listing$mail_2_listing"
+    full_newmail_list="\nLast checked: $checkdatetime\n$mail_1_listing$mail_2_listing"
 
 else
-    full_newmail_list="\n No new mail.\n Last check: $(date +%Y.%m.%d\ %H:%M:%S)"
+    full_newmail_list="\n No new mail.\n Last checked: $checkdatetime"
 fi
 
 # Write the list and the count number to files
@@ -104,4 +107,4 @@ fi
 # Log: append entries--------------------------------------
 
 # Append log entires to the top (newest on the top)
-sed -i "1s/^/Mail checked at: $(date +%Y.%m.%d\ %H:%M:%S)\n/" $mail_check_log
+sed -i "1s/^/Mail checked at: $checkdatetime\n/" $mail_check_log
