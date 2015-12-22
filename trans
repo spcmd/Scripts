@@ -28,8 +28,8 @@ read -r -d '' TRANS_PROGRAM << 'EOF'
 BEGIN {
 Name        = "Translate Shell"
 Description = "Google Translate to serve as a command-line tool"
-Version     = "0.9.0.9"
-ReleaseDate = "2015-10-05"
+Version     = "0.9.2.1"
+ReleaseDate = "2015-12-18"
 Command     = "trans"
 EntryPoint  = "translate.awk"
 }
@@ -515,6 +515,45 @@ while ((command |& getline line) > 0)
 content = (content ? content "\n" : NULLSTR) line
 return content
 }
+}
+function dump(text, group,    command, temp) {
+command = "hexdump" " -v -e'1/1 \"%03u\" \" \"'"
+("echo " parameterize(text) PIPE command) | getline temp
+split(temp, group, " ")
+return length(group) - 1
+}
+function genRL(a, x,
+b, c, d, i, y) {
+tokenize(y, x)
+parseList(b, y)
+i = SUBSEP 0
+for (c = 0; c < length(b[i]) - 2; c += 3) {
+d = b[i][c + 2]
+d = d >= 97 ? d - 87 :
+d - 48
+d = b[i][c + 1] == 43 ? rshift(a, d) : lshift(a, d)
+a = b[i][c] == 43 ? and(a + d, 4294967295) : xor(a, d)
+}
+return a
+}
+function genTK(text,
+a, d, dLen, e, tkk, ub, vb) {
+if (TK[text]) return TK[text]
+tkk = systime() / 3600
+ub = "[43,45,51,94,43,98,43,45,102]"
+vb = "[43,45,97,94,43,54]"
+dLen = dump(text, d)
+a = tkk
+for (e = 1; e <= dLen; e++)
+a = genRL(a + d[e], vb)
+a = genRL(a, ub)
+0 > a && (a = and(a, 2147483647) + 2147483648)
+a %= 1e6
+TK[text] = a "." xor(a, tkk)
+l(text, "text")
+l(tkk, "tkk")
+l(TK[text], "tk")
+return TK[text]
 }
 function initLocale(    i) {
 Locale["am"]["support"]            = "unstable"
@@ -1770,6 +1809,8 @@ Locale["zu"]["script"]             = "Latn"
 for (i in Locale) {
 Locale[i]["display"] = show(Locale[i]["endonym"], i)
 LocaleAlias[Locale[i]["iso"]] = i
+LocaleAlias[tolower(Locale[i]["name"])] = i
+LocaleAlias[tolower(Locale[i]["endonym"])] = i
 }
 LocaleAlias["in"] = "id"
 LocaleAlias["iw"] = "he"
@@ -1781,12 +1822,15 @@ LocaleAlias["nn"] = "no"
 LocaleAlias["sh"] = "sr"
 LocaleAlias["zh"] = "zh-CN"
 LocaleAlias["zho"] = "zh-CN"
+LocaleAlias["chinese"] = "zh-CN"
 }
 function getCode(code) {
 if (code == "auto" || code in Locale)
 return code
 else if (code in LocaleAlias)
 return LocaleAlias[code]
+else if (tolower(code) in LocaleAlias)
+return LocaleAlias[tolower(code)]
 else
 return
 }
@@ -2034,6 +2078,8 @@ ins(1, ansi("bold", "-b") ", " ansi("bold", "-brief")) RS\
 ins(2, "Brief mode.") RS\
 ins(1, ansi("bold", "-d") ", " ansi("bold", "-dictionary")) RS\
 ins(2, "Dictionary mode.") RS\
+ins(1, ansi("bold", "-identify")) RS\
+ins(2, "Language identification.") RS\
 ins(1, ansi("bold", "-show-original ") ansi("underline", "Y/n")) RS\
 ins(2, "Show original text or not.") RS\
 ins(1, ansi("bold", "-show-original-phonetics ") ansi("underline", "Y/n")) RS\
@@ -2066,6 +2112,8 @@ ins(2, "Do not use ANSI escape codes.") RS\
 RS "Audio options:" RS\
 ins(1, ansi("bold", "-p, -play")) RS\
 ins(2, "Listen to the translation.") RS\
+ins(1, ansi("bold", "-speak")) RS\
+ins(2, "Listen to the original text.") RS\
 ins(1, ansi("bold", "-player ") ansi("underline", "PROGRAM")) RS\
 ins(2, "Specify the audio player to use, and listen to the translation.") RS\
 ins(1, ansi("bold", "-no-play")) RS\
@@ -2660,7 +2708,8 @@ function getResponse(text, sl, tl, hl,    content, header, url) {
 url = HttpPathPrefix "/translate_a/single?client=t"\
 "&ie=UTF-8&oe=UTF-8"\
 "&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at"\
-"&q=" preprocess(text) "&sl=" sl "&tl=" tl "&hl=" hl "&tk"
+"&sl=" sl "&tl=" tl "&hl=" hl\
+"&tk=" genTK(text) "&q=" preprocess(text)
 header = "GET " url " HTTP/1.1\n"\
 "Host: " HttpHost "\n"\
 "Connection: close\n"
@@ -2682,11 +2731,11 @@ print string > Option["output"]
 }
 function play(text, tl,    url) {
 url = HttpProtocol HttpHost "/translate_tts?ie=UTF-8&client=t"\
-"&tl=" tl "&q=" preprocess(text)
+"&tl=" tl "&tk=" genTK(text) "&q=" preprocess(text)
 system(Option["player"] " " parameterize(url) SUPOUT SUPERR)
 }
 function getTranslation(text, sl, tl, hl,
-isVerbose, toSpeech, returnPlaylist,
+isVerbose, toSpeech, returnPlaylist, returnIl,
 r,
 content, tokens, ast,
 _sl, _tl, _hl, il, ils, isPhonetic,
@@ -2775,7 +2824,9 @@ oSeeAlso[group[1]] = literal(ast[i])
 }
 PROCINFO["sorted_in"] = saveSortedIn
 translation = join(translations)
-il = !anything(ils) || belongsTo(sl, ils) ? sl : ils[0]
+returnIl[0] = il = !anything(ils) || belongsTo(sl, ils) ? sl : ils[0]
+if (Option["verbose"] < 0)
+return getList(il)
 if (!isVerbose) {
 r = isPhonetic && anything(phonetics) ?
 prettify("brief-translation-phonetics", join(phonetics)) :
@@ -3015,7 +3066,7 @@ system(Option["browser"] " " parameterize("https://translate.google.com/translat
 "hl=" hl "&sl=" sl "&tl=" tl "&u=" uri) "&")
 }
 function translate(text, inline,
-i, j, playlist, saveSortedIn) {
+i, j, playlist, il, saveSortedIn) {
 if (!getCode(Option["hl"])) {
 w("[WARNING] Unknown language code: " Option["hl"] ", fallback to English: en")
 Option["hl"] = "en"
@@ -3043,14 +3094,20 @@ startsWithAny(text, UriSchemes) == "http://" ||
 startsWithAny(text, UriSchemes) == "https://") {
 webTranslation(text, Option["sl"], Option["tl"][i], Option["hl"])
 } else {
-p(getTranslation(text, Option["sl"], Option["tl"][i], Option["hl"], Option["verbose"], Option["play"], playlist))
-if (Option["play"])
+p(getTranslation(text, Option["sl"], Option["tl"][i], Option["hl"], Option["verbose"], Option["play"], playlist, il))
+if (Option["play"] == 1) {
 if (Option["player"])
 for (j in playlist)
 play(playlist[j]["text"], playlist[j]["tl"])
 else if (SpeechSynthesizer)
 for (j in playlist)
 print playlist[j]["text"] | SpeechSynthesizer
+} else if (Option["play"] == 2) {
+if (Option["player"])
+play(text, il[0])
+else if (SpeechSynthesizer)
+print text | SpeechSynthesizer
+}
 }
 }
 PROCINFO["sorted_in"] = saveSortedIn
@@ -3058,16 +3115,22 @@ PROCINFO["sorted_in"] = saveSortedIn
 function translateMain(    i, line) {
 if (Option["interactive"])
 prompt()
+if (Option["input"] == STDIN || fileExists(Option["input"])) {
 i = 0
-while (getline line < Option["input"]) {
+while (getline line < Option["input"])
+if (line) {
 if (!Option["interactive"])
 if (Option["verbose"] && i++ > 0)
-p(prettify("source-seperator", replicate(Option["chr-source-seperator"], Option["width"])))
+p(prettify("source-seperator",
+replicate(Option["chr-source-seperator"],
+Option["width"])))
 if (Option["interactive"])
 repl(line)
 else
 translate(line)
 }
+} else
+e("[ERROR] File not found: " Option["input"])
 }
 function loadOptions(script,    i, j, tokens, name, value) {
 tokenize(tokens, script)
@@ -3339,6 +3402,7 @@ init()
 if (!(belongsTo("-no-init", ARGV) || belongsTo("--no-init", ARGV)))
 initScript()
 pos = 0
+noargc = 0
 while (ARGV[++pos]) {
 match(ARGV[pos], /^--?(V|vers(i(on?)?)?)$/)
 if (RSTART) {
@@ -3405,6 +3469,11 @@ if (RSTART) {
 Option["show-original-dictionary"] = 1
 Option["show-dictionary"] = 0
 Option["show-alternatives"] = 0
+continue
+}
+match(ARGV[pos], /^--?id(e(n(t(i(fy?)?)?)?)?)?$/)
+if (RSTART) {
+Option["verbose"] = -1
 continue
 }
 match(ARGV[pos], /^--?show-original(=(.*)?)?$/, group)
@@ -3488,9 +3557,14 @@ if (RSTART) {
 Option["play"] = 1
 continue
 }
+match(ARGV[pos], /^--?sp(e(ak?)?)?$/)
+if (RSTART) {
+Option["play"] = 2
+continue
+}
 match(ARGV[pos], /^--?player(=(.*)?)?$/, group)
 if (RSTART) {
-Option["play"] = 1
+if (!Option["play"]) Option["play"] = 1
 Option["player"] = group[1] ?
 (group[2] ? group[2] : Option["player"]) :
 ARGV[++pos]
@@ -3623,7 +3697,7 @@ if (RSTART) {
 ++pos
 break
 }
-break
+noargv[noargc++] = ARGV[pos]
 }
 if (Option["interactive"] && !Option["no-rlwrap"])
 rlwrapMe()
@@ -3659,11 +3733,14 @@ exit ExitCode
 setTheme()
 if (Option["interactive"])
 welcome()
-if (pos < ARGC) {
-for (i = pos; i < ARGC; i++) {
+if (pos < ARGC)
+for (i = pos; i < ARGC; i++)
+noargv[noargc++] = ARGV[i]
+if (noargc) {
+for (i = 0; i < noargc; i++) {
 if (Option["verbose"] && i > pos)
 p(prettify("source-seperator", replicate(Option["chr-source-seperator"], Option["width"])))
-translate(ARGV[i], 1)
+translate(noargv[i], 1)
 }
 } else {
 if (!Option["input"]) Option["input"] = STDIN
@@ -3674,7 +3751,10 @@ exit ExitCode
 }
 EOF
 read -r -d '' TRANS_MANPAGE << 'EOF'
-.TH "TRANS" "1" "2015\-10\-05" "0.9.0.9" ""
+.\" Automatically generated by Pandoc 1.15.2.1
+.\"
+.hy
+.TH "TRANS" "1" "2015\-12\-18" "0.9.2.1" ""
 .SH NAME
 .PP
 trans \- Google Translate served as a command\-line tool
@@ -3760,6 +3840,13 @@ Dictionary mode.
 .RS
 .PP
 Show the definition of the original word in the dictionary.
+.RE
+.TP
+.B \f[B]\-identify\f[]
+Language identification.
+.RS
+.PP
+Show the identified language of the original text.
 .RE
 .TP
 .B \f[B]\-show\-original\f[] \f[I]Y/n\f[]
@@ -3858,6 +3945,11 @@ You must have at least one of the supported audio players
 from Google Text\-to\-Speech engine.
 Otherwise, a local speech synthesizer may be used instead (\f[B]say\f[]
 on Mac OS X, \f[B]espeak\f[] on Linux or other platforms).
+.RE
+.TP
+.B \f[B]\-speak\f[]
+Listen to the original text.
+.RS
 .RE
 .TP
 .B \f[B]\-player\f[] \f[I]PROGRAM\f[]
