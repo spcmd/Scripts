@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# --- Work in progress ---
+
+DIR_CONFIG=~/.config/hblock
+DIR_LISTS=$DIR_CONFIG/lists
+FILE_MY_BLOCKS=$DIR_LISTS/my_blocks.txt
+FILE_HOSTSLIST_URLS=$DIR_CONFIG/hostlist_urls
+
+case "$1" in
+    --add|-a)
+                echo "127.0.0.1 $2" >> $FILE_MY_BLOCKS
+                echo "added: $2"
+                ;;
+
+    --remove|-r)  sudo sed -i "/\<$2\>/d" /etc/hosts
+                  sed -i "/\<$2\>/d" "$FILE_MY_BLOCKS"
+                  echo "removed: $2"
+                  ;;
+
+    --check|-c)   echo "cheking for $2"
+                grep --color=always "$2" /etc/hosts
+                ;;
+
+    --get-hostsfile|-G) wget -N -P "$DIR_LISTS" "$2"
+                   echo "$2" >> "$FILE_HOSTSLIST_URLS"
+                 ;;
+    --remove-hostsfile|-R) echo "==> Removing hostsfile $2"
+                           sed -i "/\<$2\>/d" "$FILE_HOSTSLIST_URLS"
+                           rm "$DIR_LISTS"/"$2"
+                           echo "Done."
+                ;;
+
+    --list-hostsfiles|-L) cat "$FILE_HOSTSLIST_URLS"
+                ;;
+    --update-hostfiles|-U) echo "==> Updating hostsfiles..."
+                            wget -i "$FILE_HOSTSLIST_URLS" -N -P "$DIR_LISTS"
+                ;;
+    --build|-B) cat "$DIR_LISTS"/*.txt | sudo tee /etc/hosts > /dev/null # silent
+                sudo sed -i 's/\r$//' /etc/hosts 
+                ;;
+
+    --help|-h|*) echo "help..."
+        ;;
+esac
