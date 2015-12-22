@@ -9,6 +9,7 @@ FILE_HOSTSLIST_URLS=$DIR_CONFIG/hostlist_urls
 
 case "$1" in
     --add|-a)
+                echo "127.0.0.1 $2" | sudo tee --append /etc/hosts >> /dev/null #silent
                 echo "127.0.0.1 $2" >> $FILE_MY_BLOCKS
                 echo "added: $2"
                 ;;
@@ -17,7 +18,8 @@ case "$1" in
                   sed -i "/\<$2\>/d" "$FILE_MY_BLOCKS"
                   echo "removed: $2"
                   ;;
-
+    --list|-l)    cat $FILE_MY_BLOCKS
+                  ;;
     --check|-c)   echo "cheking for $2"
                 grep --color=always "$2" /etc/hosts
                 ;;
@@ -25,7 +27,7 @@ case "$1" in
     --get-hostsfile|-G) wget -N -P "$DIR_LISTS" "$2"
                    echo "$2" >> "$FILE_HOSTSLIST_URLS"
                  ;;
-    --remove-hostsfile|-R) echo "==> Removing hostsfile $2"
+    --remove-hostsfile|-R) echo "==> Removing hostsfile: $2"
                            sed -i "/\<$2\>/d" "$FILE_HOSTSLIST_URLS"
                            rm "$DIR_LISTS"/"$2"
                            echo "Done."
@@ -36,7 +38,7 @@ case "$1" in
     --update-hostfiles|-U) echo "==> Updating hostsfiles..."
                             wget -i "$FILE_HOSTSLIST_URLS" -N -P "$DIR_LISTS"
                 ;;
-    --build|-B) cat "$DIR_LISTS"/*.txt | sudo tee /etc/hosts > /dev/null # silent
+    --build|-B) cat "$DIR_LISTS"/* | sudo tee /etc/hosts > /dev/null #silent
                 sudo sed -i 's/\r$//' /etc/hosts 
                 ;;
 
