@@ -1,47 +1,143 @@
 #!/bin/bash
+#
+#                                      _
+#         ___ _ __   ___ _ __ ___   __| |
+#        / __| '_ \ / __| '_ ` _ \ / _` |
+#        \__ | |_) | (__| | | | | | (_| |
+#        |___| .__/ \___|_| |_| |_|\__,_|
+#             |_|
+#
+#                    hblock 
+#               Created by: spcmd
+#           http://spcmd.github.io
+#           https://github.com/spcmd
+#           https://gist.github.com/spcmd
+#
+#
+#
+#   hblock is a simple bash script which allows
+#   you to block domains easily by using the /etc/hosts file 
+#   hblock also allows you to download (and update) several hosts
+#   files and build a single hosts file of them.
+#
+#   You can download hosts files from: http://hosts-file.net/?s=Download
+#   hblock can use only plain text hosts files!
+#
+#   You can get/install a hosts file by the following command:
+#       hblock -G <url-to-plain-text-hosts-file>
+#   Example:
+#       hblock -G http://hosts-file.net/ad_servers.txt
+#
+#   You can update all of the hosts files which reside in the $DIR_LISTS directory
+#   with the the following command:
+#       hblock -U
+#   If any of these files gets updated, you need to rebuild the /etc/hosts
+#   file with the following command:
+#       hblock -B
+#   For further information, use the help:
+#       hblock -h
+#
+#   Dependencies: wget
 
-# --- Work in progress ---
-
+# Configuration
 DIR_CONFIG=~/.config/hblock
 DIR_LISTS=$DIR_CONFIG/lists
 FILE_MY_BLOCKS=$DIR_LISTS/my_blocks.txt
+FILE_LOCALHOST=$DIR_LISTS/localhost.txt
 FILE_HOSTSLIST_URLS=$DIR_CONFIG/hostlist_urls
 
+# Create default config
+
+if [[ ! -d $DIR_CONFIG ]]; then
+    echo "==> Creating default config"
+    mkdir -p "$DIR_LISTS"
+    echo "#<ip-address>	<hostname.domain.org>	<hostname>" > "$FILE_LOCALHOST"
+    echo "127.0.0.1	localhost.localdomain	localhost" >> "$FILE_LOCALHOST"
+    echo "::1		localhost.localdomain	localhost" >> "$FILE_LOCALHOST"
+    echo "Done."
+    echo "==> Creating backup of the original hosts file from /etc"
+    cp /etc/hosts "$DIR_CONFIG"/etc-hosts.backup 
+    echo "Done. /etc/hosts saved to "$DIR_CONFIG"/etc-hosts.backup"
+    echo -e "\n"
+fi
+
+# Options
 case "$1" in
     --add|-a)
-                echo "127.0.0.1 $2" | sudo tee --append /etc/hosts >> /dev/null #silent
-                echo "127.0.0.1 $2" >> $FILE_MY_BLOCKS
-                echo "added: $2"
-                ;;
+                    echo "127.0.0.1 $2" | sudo tee --append /etc/hosts > /dev/null #silent
+                    echo "127.0.0.1 $2" >> $FILE_MY_BLOCKS
+                    echo "==> Added: $2"
+                    ;;
 
-    --remove|-r)  sudo sed -i "/\<$2\>/d" /etc/hosts
-                  sed -i "/\<$2\>/d" "$FILE_MY_BLOCKS"
-                  echo "removed: $2"
-                  ;;
-    --list|-l)    cat $FILE_MY_BLOCKS
-                  ;;
-    --check|-c)   echo "cheking for $2"
-                grep --color=always "$2" /etc/hosts
-                ;;
+    --remove|-r)
+                    sudo sed -i "/\<$2\>/d" /etc/hosts
+                    sed -i "/\<$2\>/d" "$FILE_MY_BLOCKS"
+                    echo "==> Removed: $2"
+                    ;;
 
-    --get-hostsfile|-G) wget -N -P "$DIR_LISTS" "$2"
-                   echo "$2" >> "$FILE_HOSTSLIST_URLS"
-                 ;;
-    --remove-hostsfile|-R) echo "==> Removing hostsfile: $2"
-                           sed -i "/\<$2\>/d" "$FILE_HOSTSLIST_URLS"
-                           rm "$DIR_LISTS"/"$2"
-                           echo "Done."
-                ;;
+    --list|-l)
+                    cat $FILE_MY_BLOCKS
+                    ;;
 
-    --list-hostsfiles|-L) cat "$FILE_HOSTSLIST_URLS"
-                ;;
-    --update-hostfiles|-U) echo "==> Updating hostsfiles..."
-                            wget -i "$FILE_HOSTSLIST_URLS" -N -P "$DIR_LISTS"
-                ;;
-    --build|-B) cat "$DIR_LISTS"/* | sudo tee /etc/hosts > /dev/null #silent
-                sudo sed -i 's/\r$//' /etc/hosts 
-                ;;
+    --check|-c)
+                    echo "==> Checking for: $2"
+                    grep --color=always "$2" /etc/hosts
+                    ;;
 
-    --help|-h|*) echo "help..."
-        ;;
+    --get-hostsfile|-G)
+                    wget -N -P "$DIR_LISTS" "$2"
+                    echo "$2" >> "$FILE_HOSTSLIST_URLS"
+                    ;;
+
+    --remove-hostsfile|-R)
+                    echo "==> Removing hosts file: $2"
+                    sed -i "/\<$2\>/d" "$FILE_HOSTSLIST_URLS"
+                    rm "$DIR_LISTS"/"$2"
+                    echo "Done."
+                    ;;
+
+    --list-hostsfiles|-L)
+                    cat "$FILE_HOSTSLIST_URLS"
+                    ;;
+
+    --update-hostfiles|-U)
+                    echo "==> Updating hosts files..."
+                    wget -i "$FILE_HOSTSLIST_URLS" -N -P "$DIR_LISTS"
+                    echo "Done."
+                    ;;
+
+    --build|-B)
+                    echo "== Building /etc/hosts"
+                    cat "$DIR_LISTS"/* | sudo tee /etc/hosts > /dev/null #silent
+                    sudo sed -i 's/\r$//' /etc/hosts 
+                    echo "Done."
+                    ;;
+
+    --help|-h|*)
+cat << EOF
+Configuration: edit the hblock shell script file and set the used directories as you wish. 
+By default hblock uses the ~/.config/hblock directory to store the block lists.
+The final (built) hosts file of course will be the /etc/hosts.
+
+You can download hosts files from: http://hosts-file.net/?s=Download (use the individual plain text files!)
+Copy the link that points to the plain text file and use this command to download it as a blocklist for hblock:
+    hlbock -G <url-to-plain-text-hosts-file>
+For example:
+    hblock -G http://hosts-file.net/ad_servers.txt
+
+Usage: hblock [option] <domain|url|filename>
+
+    -a, --add <domain>                  Block a <domain>
+    -r, --remove <domain>               Remove a <domain>
+    -l, --list                          List manually blocked domains 
+    -c, --check <domain>                Check whether the domain is blocked (is in the /etc/hosts file)
+    -G, --get-hostsfile <url>           Download a hosts file (need to be a plain text file!)
+    -R, --remove-hostsfile <filename>   Remove the <filename> hosts file from \$DIR_LISTS directory (use the filename only, don't include the path!)
+    -L, --list-hostsfiles               List the url's of the downloaded hosts files
+    -U, --update-hostfiles              Update downloaded hosts files
+    -B, --build                         Build the /etc/hosts file from all downloaded hosts and manual blocked domains
+    -h, --help                          This help
+
+EOF
+    ;;
 esac
