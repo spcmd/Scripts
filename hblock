@@ -127,6 +127,7 @@ For example:
 
 Usage: hblock [option] <domain|url|filename>
 
+Options:
     -a, --add <domain>                  Block a <domain>
     -r, --remove <domain>               Remove a <domain>
     -l, --list                          List manually blocked domains 
