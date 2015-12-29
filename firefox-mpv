@@ -29,7 +29,7 @@ SPOTIFY_AUTO_PLAY=""
 # Set "yes" if you want to log the watched videos into a html file
 # Works with youtube and vimeo videos only
 # Options: yes (or leave it blank if you don't want to use this)
-LOGGING="yes"
+LOGGING=""
 
 # Time and date format for logging
 DATETIME=$(date "+%Y.%m.%d. %H:%M:%S")
