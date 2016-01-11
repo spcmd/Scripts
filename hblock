@@ -45,6 +45,7 @@ DIR_LISTS=$DIR_CONFIG/lists
 FILE_MY_BLOCKS=$DIR_LISTS/my_blocks.txt
 FILE_LOCALHOST=$DIR_LISTS/localhost.txt
 FILE_HOSTSLIST_URLS=$DIR_CONFIG/hostlist_urls
+FILE_LASTBUILD=$DIR_CONFIG/lastbuild
 
 # Create default config
 
@@ -110,10 +111,14 @@ case "$1" in
                     echo "== Building /etc/hosts"
                     cat "$DIR_LISTS"/* | sudo tee /etc/hosts > /dev/null #silent
                     sudo sed -i 's/\r$//' /etc/hosts 
+                    echo "$(date +'%Y-%b-%d %H:%M')" > $FILE_LASTBUILD 
                     echo "Done."
                     ;;
 
     --help|-h|*)
+    if [[ -f $FILE_LASTBUILD ]]; then
+        echo "hblock: /etc/hosts last build date: $(cat $FILE_LASTBUILD)"
+    fi
 cat << EOF
 Configuration: edit the hblock shell script file and set the used directories as you wish. 
 By default hblock uses the ~/.config/hblock directory to store the block lists.
