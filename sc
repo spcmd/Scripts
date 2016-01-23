@@ -67,6 +67,7 @@ case $1 in
         echo -e "\033[1;32mTitle:\033[0m $meta_Title"
         echo -e "\033[1;32mAlbum:\033[0m $meta_Album"
         echo -e "\033[1;32mTrack:\033[0m $meta_TrackNumber"
+        echo ""
         ;;
     -I|--details)
         sc_ascii;
@@ -78,6 +79,7 @@ case $1 in
         echo -e "\033[1;32mTrackID:\033[0m $meta_TrackID"
         echo -e "\033[1;32mTrackURL:\033[0m $meta_TrackURL"
         echo -e "\033[1;32mArtURL:\033[0m $meta_ArtURL"
+        echo ""
         ;;
     -m|--meta)
         $DBUS_GET_META
