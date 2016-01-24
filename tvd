@@ -6,7 +6,7 @@
 #        |___| .__/ \___|_| |_| |_|\__,_|
 #             |_|
 #
-#                 tvd (tv dump) 
+#                 tvd (tv dump)
 #               Created by: spcmd
 #           http://spcmd.github.io
 #           https://github.com/spcmd
@@ -14,36 +14,96 @@
 #
 
 # ===============================
-# Configuration
+# Configurable options
 # ===============================
-url="http://tvmusor.aweben.hu"
 highlight_color="0;33"
 use_gap="yes" # yes OR no/empty
+show_night_only="yes" # yes OR no/empty
+
+url="http://tvmusor.aweben.hu"
+date_regex="[0-9]{4}.[0-9]{2}.[0-9]{2}" # date format (currently: YYYY-mm-dd)
+time_regex="[0-9]{2}:[0-9]{2}" # time format (currently: HH:MM)
+night_time_regex="2[0-9]:[0-9]{2}" # time starts with 2 => after 20:00
 # ===============================
 
-# dumping command
-dump() {
-    lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html | awk -vf=0 '/2016-/{f=1;++d}d!=2{print}f&&d==2{exit};' | sed -e '/^\s*$/d' -ne '/2016-/,$p' | GREP_COLOR="$highlight_color" grep -E --color=always '(^2016-.*|$|[0-9]{2}:[0-9]{2})'
+show_today() {
+
+    # Description:
+        # 1. lynx: dump the website
+        # 2. awk: get only the first "block" (get everything till the second date header, but not the second date header)
+        # 3. sed: delete blank lines & delete the crap from above the first date header
+        # 4. grep: colorize the date and the timestamps
+
+    # filter output: show night programs only OR the whole day
+    if [[ $show_night_only = "yes" ]]; then
+        day_night_filter="/$date_regex|$night_time_regex/p"
+    else
+        day_night_filter="/$date_regex/,\$p"
+    fi
+
+    lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
+        | awk -vf=0 "/$date_regex/{f=1;++d}d!=2{print}f&&d==2{exit};" \
+        | sed -e "/^\s*$/d" -nre $day_night_filter \
+        | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)"
 }
 
-# use_gap ?
-gap() { 
+search_today() {
+
+    # using ${query^} format to capitalize the first letter of the string
+    # this should work for case-insensitive searching (note: doesn't capitalize every word, only the first!)
+
+    lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
+        | awk -vf=0 "/$date_regex/{f=1;++d}d!=2{print}f&&d==2{exit};" \
+        | sed -e '/^\s*$/d' -re "/$date_regex|${query^}/!d" \
+        | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)"
+}
+
+search_week() {
+
+    # using ${query^} format to capitalize the first letter of the string
+    # this should work for case-insensitive searching (note: doesn't capitalize every word, only the first!)
+
+    lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
+        | sed -e "/^\s*$/d" -re "/$date_regex|$time_regex.+${query^}/!d" \
+        | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)" \
+        | grep --color=never -B1 "${query^}"
+
+}
+
+search_multi() {
+
+    declare -a channels=("cool" "tv2" "viasat3" "viasat6")
+    for channel in "${channels[@]}"
+    do
+        tv=$channel search_week
+    done
+}
+
+# function for use_gap
+gap() {
     if [[ $use_gap = "yes" ]]; then
-        echo ""; 
+        echo "";
     fi
 }
 
-# help 
+# help
 usage() {
 cat <<EOF
-Usage: $(basename $0) [channel name]
+Usage: $(basename $0) [options] [channel name]
 Optionally you can pipe it to 'less -ri'
     $(basename $0) [channel name] | less -ri
+
+Options:
+
+        -t, --search-today <query> <channel>    Search in today's pograms
+        -w, --search-week <query> <channel>     Search in week's pograms
+        -s, --search-multiple <query>           Search in multiple channels weekly pograms
+        -h, --help                              This help page
 
 Channel names:
 
         cool              Cool TV
-        tv2               tv2 
+        tv2               tv2
         rtl_klub          RTL Klub
         viasat3           Viasat 3
         viasat6           Viasat 6
@@ -58,7 +118,7 @@ Channel names:
         rtl_p             RTL+
         story4            Story 4
         story5            Story 5
-        rtl_2             RTL II 
+        rtl_2             RTL II
         fox               Fox
         m1                m1
         m2                m2
@@ -69,32 +129,35 @@ EOF
 }
 
 # options (channels)
-while : 
+while :
 do
     case $1 in
-        cool) gap && tv=$1 && dump;;
-        tv2) gap && tv=$1 && dump;;
-        rtl_klub) gap && tv=$1 && dump;;
-        viasat3) gap && tv=$1 && dump;;
-        viasat6) gap && tv=$1 && dump;;
-        super_tv2) gap && tv=$1 && dump;;
-        film_p) gap && tv=$1 && dump;;
-        sorozat_p) gap && tv=$1 && dump;;
-        film_cafe) gap && tv=$1 && dump;;
-        axn) gap && tv=$1 && dump;;
-        amc) gap && tv=$1 && dump;;
-        paramount) gap && tv=$1 && dump;;
-        pro4) gap && tv=$1 && dump;;
-        rtl_p) gap && tv=$1 && dump;;
-        story4) gap && tv=$1 && dump;;
-        story5) gap && tv=$1 && dump;;
-        rtl_2) gap && tv=$1 && dump;;
-        fox) gap && tv=$1 && dump;;
-        m1) gap && tv=$1 && dump;;
-        m2) gap && tv=$1 && dump;;
-        duna_televizio) gap && tv=$1 && dump;;
-        duna_world) gap && tv=$1 && dump;;
-        comedy_central) gap && tv=$1 && dump;;
+        cool) tv=$1 show_today && gap;;
+        tv2) tv=$1 show_today && gap;;
+        rtl_klub) tv=$1 show_today && gap;;
+        viasat3) tv=$1 show_today && gap;;
+        viasat6) tv=$1 show_today && gap;;
+        super_tv2) tv=$1 show_today && gap;;
+        film_p) tv=$1 show_today && gap;;
+        sorozat_p) tv=$1 show_today && gap;;
+        film_cafe) tv=$1 show_today && gap;;
+        axn) tv=$1 show_today && gap;;
+        amc) tv=$1 show_today && gap;;
+        paramount) tv=$1 show_today && gap;;
+        pro4) tv=$1 show_today && gap;;
+        rtl_p) tv=$1 show_today && gap;;
+        story4) tv=$1 show_today && gap;;
+        story5) tv=$1 show_today && gap;;
+        rtl_2) tv=$1 show_today && gap;;
+        fox) tv=$1 show_today && gap;;
+        m1) tv=$1 show_today && gap;;
+        m2) tv=$1 show_today && gap;;
+        duna_televizio) tv=$1 show_today && gap;;
+        duna_world) tv=$1 show_today && gap;;
+        comedy_central) tv=$1 show_today && gap;;
+        -t|--search-today) query=$2 tv=$3 search_today;;
+        -w|--search-week) query=$2 tv=$3 search_week;;
+        -s|--search-multiple) query=$2 search_multi;;
         -h|--help|help) usage;;
         *) break;;
     esac
