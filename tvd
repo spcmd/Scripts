@@ -145,6 +145,7 @@ Options:
         -w, --search-week <query> <channel>     Search in week's pograms
         -s, --search-multiple <query>           Search in multiple channels weekly pograms
         -p, --search-porthu <query>             Search in port.hu's database
+        -g, --generate-channe-list              Generate channel list from the channels array (for zsh completion)
         -h, --help                              This help page
 
 Channel names:
