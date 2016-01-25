@@ -16,14 +16,22 @@
 # ===============================
 # Configurable options
 # ===============================
-highlight_color="0;33"
+
+highlight_color="0;33" # color (duh)
 use_gap="yes" # yes OR no/empty
 show_night_only="yes" # yes OR no/empty
 
-url="http://tvmusor.aweben.hu"
+# array of channels; used for search_multi()
+channels=("cool" "tv2" "rtl_klub" "super_tv2" "viasat3" "viasat6" "sorozat_p" "film_cafe" "axn" "amc" "paramount" "pro4" "rtl_p" "story4" "story5" "m1" "m2" "duna_televizio" "duna_world" "comedy_central" )
+
+#regex
 date_regex="[0-9]{4}.[0-9]{2}.[0-9]{2}" # date format (currently: YYYY-mm-dd)
 time_regex="[0-9]{2}:[0-9]{2}" # time format (currently: HH:MM)
 night_time_regex="2[0-9]:[0-9]{2}" # time starts with 2 => after 20:00
+
+# main url
+url="http://tvmusor.aweben.hu"
+
 # ===============================
 
 show_today() {
@@ -41,42 +49,82 @@ show_today() {
         day_night_filter="/$date_regex/,\$p"
     fi
 
-    lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
-        | awk -vf=0 "/$date_regex/{f=1;++d}d!=2{print}f&&d==2{exit};" \
-        | sed -e "/^\s*$/d" -nre $day_night_filter \
-        | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)"
+    for tv in $tv;
+        do
+            lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
+                | awk -vf=0 "/$date_regex/{f=1;++d}d!=2{print}f&&d==2{exit};" \
+                | sed -e "/^\s*$/d" -nre $day_night_filter \
+                | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)"
+
+            # use gap?
+            if [[ $use_gap = "yes" ]]; then
+                echo "";
+            fi
+        done
 }
 
 search_today() {
 
-    # using ${query^} format to capitalize the first letter of the string
-    # this should work for case-insensitive searching (note: doesn't capitalize every word, only the first!)
-
     lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
         | awk -vf=0 "/$date_regex/{f=1;++d}d!=2{print}f&&d==2{exit};" \
-        | sed -e '/^\s*$/d' -re "/$date_regex|${query^}/!d" \
+        | sed -e '/^\s*$/d' -re "/$date_regex|$query/I!d" \
         | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)"
 }
 
 search_week() {
 
-    # using ${query^} format to capitalize the first letter of the string
-    # this should work for case-insensitive searching (note: doesn't capitalize every word, only the first!)
-
     lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
-        | sed -e "/^\s*$/d" -re "/$date_regex|$time_regex.+${query^}/!d" \
+        | sed -e "/^\s*$/d" -re "/$date_regex|$time_regex.+$query/I!d" \
         | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)" \
-        | grep --color=never -B1 "${query^}"
+        | grep -i --color=never -B1 "$query"
 
 }
 
 search_multi() {
 
-    declare -a channels=("cool" "tv2" "viasat3" "viasat6")
     for channel in "${channels[@]}"
     do
         tv=$channel search_week
     done
+}
+
+search_porthu() {
+
+    if [[ -x /bin/xdg-open ]]; then
+        # convert spaces to plus (+) sings and convert accented characters
+        q=$(echo "$query" | sed 's/ /+/g' | iconv -t ascii//TRANSLIT)
+        echo -e "==> Search query: \033[1;32m$query\033[0m converted to: \033[1;32m$q\033[0m"
+        echo "==> Done: Opened in your default browser."
+        xdg-open "http://port.hu/pls/ci/cinema.film_creator?i_text=$q&i_film_creator=1" 2>/dev/null # /dev/null fixes the annoying message: GLib-CRITICAL **: g_slice_set_config: assertion `sys_page_size == 0′ failed
+    else
+        echo "Error: command not found: xdg-open"
+    fi
+}
+
+# generate channel list from the channels array
+# using it for zsh completion
+generate_channel_list() {
+
+    file_channel_list=$HOME/.tvchannels.txt
+
+    if [[ ! -e $file_channel_list ]]; then
+
+        printf '%s\n' "${channels[@]}" > $file_channel_list
+        echo "Done: '$file_channel_list' has been generated."
+
+    else
+
+        echo "Warning: '$file_channel_list' already exists! Overwrite it? [yY|nN]"
+        read answer
+        if [[ $answer = "y" ]] || [[ $answer = "Y" ]]; then
+            printf '%s\n' "${channels[@]}" > $file_channel_list
+            echo "Done: '$file_channel_list' has been updated."
+        else
+            echo "Aborted."
+            exit
+        fi
+
+    fi
 }
 
 # function for use_gap
@@ -90,14 +138,13 @@ gap() {
 usage() {
 cat <<EOF
 Usage: $(basename $0) [options] [channel name]
-Optionally you can pipe it to 'less -ri'
-    $(basename $0) [channel name] | less -ri
 
 Options:
 
         -t, --search-today <query> <channel>    Search in today's pograms
         -w, --search-week <query> <channel>     Search in week's pograms
         -s, --search-multiple <query>           Search in multiple channels weekly pograms
+        -p, --search-porthu <query>             Search in port.hu's database
         -h, --help                              This help page
 
 Channel names:
@@ -128,38 +175,21 @@ Channel names:
 EOF
 }
 
-# options (channels)
-while :
-do
+if [[ $# == 0 ]]; then
+
+    usage
+
+else
+
     case $1 in
-        cool) tv=$1 show_today && gap;;
-        tv2) tv=$1 show_today && gap;;
-        rtl_klub) tv=$1 show_today && gap;;
-        viasat3) tv=$1 show_today && gap;;
-        viasat6) tv=$1 show_today && gap;;
-        super_tv2) tv=$1 show_today && gap;;
-        film_p) tv=$1 show_today && gap;;
-        sorozat_p) tv=$1 show_today && gap;;
-        film_cafe) tv=$1 show_today && gap;;
-        axn) tv=$1 show_today && gap;;
-        amc) tv=$1 show_today && gap;;
-        paramount) tv=$1 show_today && gap;;
-        pro4) tv=$1 show_today && gap;;
-        rtl_p) tv=$1 show_today && gap;;
-        story4) tv=$1 show_today && gap;;
-        story5) tv=$1 show_today && gap;;
-        rtl_2) tv=$1 show_today && gap;;
-        fox) tv=$1 show_today && gap;;
-        m1) tv=$1 show_today && gap;;
-        m2) tv=$1 show_today && gap;;
-        duna_televizio) tv=$1 show_today && gap;;
-        duna_world) tv=$1 show_today && gap;;
-        comedy_central) tv=$1 show_today && gap;;
+
         -t|--search-today) query=$2 tv=$3 search_today;;
         -w|--search-week) query=$2 tv=$3 search_week;;
         -s|--search-multiple) query=$2 search_multi;;
+        -p|--search-porthu) query=$2 search_porthu;;
+        -g|--generate-channe-list) generate_channel_list;;
         -h|--help|help) usage;;
-        *) break;;
+        *)tv=$@ show_today | less -ri;;
+
     esac
-    shift
-done
+fi
