@@ -22,7 +22,7 @@ use_gap="yes" # yes OR no/empty
 show_night_only="yes" # yes OR no/empty
 
 # array of channels; used for search_multi()
-channels=("cool" "tv2" "rtl_klub" "super_tv2" "viasat3" "viasat6" "sorozat_p" "film_cafe" "axn" "amc" "paramount" "pro4" "rtl_p" "story4" "story5" "m1" "m2" "duna_televizio" "duna_world" "comedy_central" )
+channels=("cool" "tv2" "rtl_klub" "viasat3" "viasat6" "super_tv2" "film_p" "sorozat_p" "film_cafe" "axn" "amc" "paramount" "pro4" "rtl_p" "story4" "story5" "rtl_2" "comedy_central" "m1" "m2" "duna_televizio" "duna_world")
 
 #regex
 date_regex="[0-9]{4}.[0-9]{2}.[0-9]{2}" # date format (currently: YYYY-mm-dd)
@@ -105,7 +105,7 @@ search_porthu() {
 # using it for zsh completion
 generate_channel_list() {
 
-    file_channel_list=$HOME/.tvchannels.txt
+    file_channel_list=$HOME/.tvd_channels
 
     if [[ ! -e $file_channel_list ]]; then
 
@@ -170,9 +170,17 @@ Channel names:
         fox               Fox
         m1                m1
         m2                m2
+        m3                m3
         duna_televizio    Duna TV
         duna_world        Duna World
         comedy_central    Comedy Central
+        hbo               HBO
+        hbo_2             HBO 2
+        cinemax           Cinemax
+        cinemax_2         Cinemax 2
+        film_mania        Film Mánia
+        universal         Universal
+        filmbox           Filmbox
 EOF
 }
 
