@@ -17,22 +17,38 @@
 # Configurable options
 # ===============================
 
-highlight_color="0;33" # color (duh)
+# main url
+url="http://tvmusor.aweben.hu"
+
+highlight_color="0;35" # highlight color for the date/time
 use_gap="yes" # yes OR no/empty
 show_night_only="yes" # yes OR no/empty
 
-# array of channels; used for search_multi()
-channels=("cool" "tv2" "rtl_klub" "viasat3" "viasat6" "super_tv2" "film_p" "sorozat_p" "film_cafe" "axn" "amc" "paramount" "pro4" "rtl_p" "story4" "story5" "rtl_2" "comedy_central" "m1" "m2" "duna_televizio" "duna_world")
+# highlight keywords (e.g.: movie or tv show titles)
+# use one title per line in the file
+# edit the file with the '-e' option
+file_keywords=$HOME/.tvd_highlights
+reset_color=$(echo -e '\033[0m') # do not modify this!
+keyword_color=$(echo -e '\033[1;32m')
 
 #regex
 date_regex="[0-9]{4}.[0-9]{2}.[0-9]{2}" # date format (currently: YYYY-mm-dd)
 time_regex="[0-9]{2}:[0-9]{2}" # time format (currently: HH:MM)
 night_time_regex="2[0-9]:[0-9]{2}" # time starts with 2 => after 20:00
 
-# main url
-url="http://tvmusor.aweben.hu"
+# array of channels; used for search_multi()
+channels=("cool" "tv2" "rtl_klub" "viasat3" "viasat6" "super_tv2" "film_p" "sorozat_p" "film_cafe" "axn" "amc" "paramount" "pro4" "rtl_p" "story4" "story5" "rtl_2" "comedy_central" "m1" "m2" "duna_televizio" "duna_world")
 
 # ===============================
+
+highlight_keywords() {
+        if [[ -f $file_keywords ]]; then
+            keywords_list=$(sed ':a;N;$!ba;s/\n/|/g' $file_keywords)
+            sed -r "s/($keywords_list)/${keyword_color}&$reset_color/ig"
+        else
+            sed "" # do nothing
+        fi
+    }
 
 show_today() {
 
@@ -41,6 +57,7 @@ show_today() {
         # 2. awk: get only the first "block" (get everything till the second date header, but not the second date header)
         # 3. sed: delete blank lines & delete the crap from above the first date header
         # 4. grep: colorize the date and the timestamps
+        # 5. highlight keywords
 
     # filter output: show night programs only OR the whole day
     if [[ $show_night_only = "yes" ]]; then
@@ -49,12 +66,14 @@ show_today() {
         day_night_filter="/$date_regex/,\$p"
     fi
 
+
     for tv in $tv;
         do
             lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
                 | awk -vf=0 "/$date_regex/{f=1;++d}d!=2{print}f&&d==2{exit};" \
                 | sed -e "/^\s*$/d" -nre $day_night_filter \
-                | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)"
+                | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)" \
+                | highlight_keywords
 
             # use gap?
             if [[ $use_gap = "yes" ]]; then
@@ -146,6 +165,7 @@ Options:
         -s, --search-multiple <query>           Search in multiple channels weekly pograms
         -p, --search-porthu <query>             Search in port.hu's database
         -g, --generate-channe-list              Generate channel list from the channels array (for zsh completion)
+        -e, --edit-keywords                     Edit the keywords file that is used for highlighting (uses \$EDITOR for editing)
         -h, --help                              This help page
 
 Channel names:
@@ -197,6 +217,7 @@ else
         -s|--search-multiple) query=$2 search_multi;;
         -p|--search-porthu) query=$2 search_porthu;;
         -g|--generate-channe-list) generate_channel_list;;
+        -e|--edit-highlights) $EDITOR $file_keywords;;
         -h|--help|help) usage;;
         *)tv=$@ show_today | less -ri;;
 
