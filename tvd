@@ -13,9 +13,9 @@
 #           https://gist.github.com/spcmd
 #
 
-# ===============================
-# Configurable options
-# ===============================
+# ===========================================================================
+#   Configurable options
+# ===========================================================================
 
 # main url
 url="http://tvmusor.aweben.hu"
@@ -39,8 +39,13 @@ night_time_regex="2[0-9]:[0-9]{2}" # time starts with 2 => after 20:00
 # array of channels; used for search_multi()
 channels=("cool" "tv2" "rtl_klub" "viasat3" "viasat6" "super_tv2" "film_p" "sorozat_p" "film_cafe" "axn" "amc" "paramount" "pro4" "rtl_p" "story4" "story5" "rtl_2" "comedy_central" "m1" "m2" "duna_televizio" "duna_world")
 
-# ===============================
+# ===========================================================================
+#   Functions
+# ===========================================================================
 
+# --------------------
+# keyword highlighting
+# --------------------
 highlight_keywords() {
         if [[ -f $file_keywords ]]; then
             keywords_list=$(sed ':a;N;$!ba;s/\n/|/g' $file_keywords)
@@ -50,6 +55,18 @@ highlight_keywords() {
         fi
     }
 
+# --------------------
+# use_gap
+# --------------------
+gap() {
+    if [[ $use_gap = "yes" ]]; then
+        echo "";
+    fi
+}
+
+# ---------------------
+# show today's programs
+# ---------------------
 show_today() {
 
     # Description:
@@ -82,33 +99,24 @@ show_today() {
         done
 }
 
-search_today() {
-
-    lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
-        | awk -vf=0 "/$date_regex/{f=1;++d}d!=2{print}f&&d==2{exit};" \
-        | sed -e '/^\s*$/d' -re "/$date_regex|$query/I!d" \
-        | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)"
-}
-
-search_week() {
-
-    lynx -dump -display_charset="UTF-8" -nolist $url/$tv.html \
+# -----------------------------
+# search weekly in all channels
+# -----------------------------
+search() {
+    for channel in "${channels[@]}"
+    do
+        lynx -dump -display_charset="UTF-8" -nolist $url/$channel.html \
         | sed -e "/^\s*$/d" -re "/$date_regex|$time_regex.+$query/I!d" \
         | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)" \
         | grep -i --color=never -B1 "$query"
 
-}
-
-search_multi() {
-
-    for channel in "${channels[@]}"
-    do
-        tv=$channel search_week
     done
 }
 
+# ----------------------------------
+# search title in port.hu's database
+# ----------------------------------
 search_porthu() {
-
     if [[ -x /bin/xdg-open ]]; then
         # convert spaces to plus (+) sings and convert accented characters
         q=$(echo "$query" | sed 's/ /+/g' | iconv -t ascii//TRANSLIT)
@@ -120,8 +128,9 @@ search_porthu() {
     fi
 }
 
-# generate channel list from the channels array
-# using it for zsh completion
+# ---------------------------------------------------------------------------
+# generate channel list from the channels array (using it for zsh completion)
+# ---------------------------------------------------------------------------
 generate_channel_list() {
 
     file_channel_list=$HOME/.tvd_channels
@@ -146,27 +155,21 @@ generate_channel_list() {
     fi
 }
 
-# function for use_gap
-gap() {
-    if [[ $use_gap = "yes" ]]; then
-        echo "";
-    fi
-}
-
+# --------------------
 # help
+# --------------------
 usage() {
 cat <<EOF
-Usage: $(basename $0) [options] [channel name]
+Usage: $(basename $0) [option|channel name] <query>
 
 Options:
 
-        -t, --search-today <query> <channel>    Search in today's pograms
-        -w, --search-week <query> <channel>     Search in week's pograms
-        -s, --search-multiple <query>           Search in multiple channels weekly pograms
-        -p, --search-porthu <query>             Search in port.hu's database
-        -g, --generate-channe-list              Generate channel list from the channels array (for zsh completion)
-        -e, --edit-keywords                     Edit the keywords file that is used for highlighting (uses \$EDITOR for editing)
-        -h, --help                              This help page
+        <channel1|channel2 ...>                         Show today's programs of the selected channels. Without channel name it shows all channels.
+        -s, --search <query>                            Search in weekly programs in all channels (from the \`channels\` array).
+        -p, --porthu <query>                            Search in port.hu's database.
+        -g, --generate-list                             Generate channel list from the channels array (for zsh completion).
+        -e, --edit-keywords                             Edit the keywords file that is used for highlighting (uses \$EDITOR for editing).
+        -h, --help                                      This help page.
 
 Channel names:
 
@@ -204,6 +207,10 @@ Channel names:
 EOF
 }
 
+# ===========================================================================
+#   Doing the stuff
+# ===========================================================================
+
 if [[ $# == 0 ]]; then
 
     usage
@@ -212,12 +219,10 @@ else
 
     case $1 in
 
-        -t|--search-today) query=$2 tv=$3 search_today;;
-        -w|--search-week) query=$2 tv=$3 search_week;;
-        -s|--search-multiple) query=$2 search_multi;;
-        -p|--search-porthu) query=$2 search_porthu;;
-        -g|--generate-channe-list) generate_channel_list;;
-        -e|--edit-highlights) $EDITOR $file_keywords;;
+        -s|--search) query=$2 search;;
+        -p|--porthu) query=$2 search_porthu;;
+        -g|--generate-list) generate_channel_list;;
+        -e|--edit-keywords) $EDITOR $file_keywords;;
         -h|--help|help) usage;;
         *)tv=$@ show_today | less -ri;;
 
