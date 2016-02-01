@@ -48,7 +48,10 @@ channels=("cool" "tv2" "rtl_klub" "viasat3" "viasat6" "super_tv2" "film_p" "soro
 # --------------------
 highlight_keywords() {
         if [[ -f $file_keywords ]]; then
-            keywords_list=$(sed ':a;N;$!ba;s/\n/|/g' $file_keywords)
+            # 1. sed: remove blank lines (prevents the failing of sed color highlighting)
+            # 2. sed: collapse lines into a single line and use pipes to seperate the keywords
+            # 3. sed: remove all pipes from the end of the line (prevents the failing of sed color highlighting)
+            keywords_list=$(sed -e '/^\s*$/d' -e ':a;N;$!ba;s/\n/|/g' -re 's/[|]{1,}$//' $file_keywords)
             sed -r "s/($keywords_list)/${keyword_color}&$reset_color/ig"
         else
             sed "" # do nothing
