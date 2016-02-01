@@ -116,6 +116,20 @@ search() {
     done
 }
 
+# ------------------------------------------
+# search for all keywords in weekly programs
+# -------------------------------------------
+search_keywords() {
+    keywords_list=$(sed -e '/^\s*$/d' -e ':a;N;$!ba;s/\n/|/g' -re 's/[|]{1,}$//' $file_keywords)
+    for channel in "${channels[@]}"
+    do
+        lynx -dump -display_charset="UTF-8" -nolist $url/$channel.html \
+        | sed -e "/^\s*$/d" -re "/$date_regex|$time_regex.+($keywords_list)/I!d" \
+        | GREP_COLOR="$highlight_color" grep -E --color=always "(^$date_regex.*|$|$time_regex)" \
+        | grep -E -i --color=never -B1 "($keywords_list)"
+
+    done
+}
 # ----------------------------------
 # search title in port.hu's database
 # ----------------------------------
@@ -167,12 +181,12 @@ Usage: $(basename $0) [option|channel name] <query>
 
 Options:
 
-        <channel1|channel2 ...>                         Show today's programs of the selected channels. Without channel name it shows all channels.
-        -s, --search <query>                            Search in weekly programs in all channels (from the \`channels\` array).
-        -p, --porthu <query>                            Search in port.hu's database.
-        -g, --generate-list                             Generate channel list from the channels array (for zsh completion).
-        -e, --edit-keywords                             Edit the keywords file that is used for highlighting (uses \$EDITOR for editing).
-        -h, --help                                      This help page.
+        <channel1|channel2 ...>         Show today's programs of the selected channels.
+        -s, --search <query>            Search in weekly programs in all channels. Without query it searches for all the keywords from the keywords file.
+        -p, --porthu <query>            Search in port.hu's database.
+        -g, --generate-list             Generate channel list from the channels array (for zsh completion).
+        -e, --edit-keywords             Edit the keywords file that is used for highlighting (uses \$EDITOR for editing).
+        -h, --help                      This help page.
 
 Channel names:
 
@@ -222,7 +236,7 @@ else
 
     case $1 in
 
-        -s|--search) query=$2 search;;
+        -s|--search) if [[ -z $2 ]]; then search_keywords; else query=$2 search;fi;;
         -p|--porthu) query=$2 search_porthu;;
         -g|--generate-list) generate_channel_list;;
         -e|--edit-keywords) $EDITOR $file_keywords;;
