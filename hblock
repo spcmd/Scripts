@@ -97,6 +97,14 @@ get(){
     echo "$url" >> "$FILE_HOSTSLIST_URLS"
 }
 
+get_predefined(){
+    ad_servers="http://hosts-file.net/ad_servers.txt"
+    malware_sites="http://hosts-file.net/emd.txt"
+    someonewhocares="http://someonewhocares.org/hosts/hosts"
+    wget --quiet --show-progress -N -P "$DIR_LISTS" "$ad_servers" "$malware_sites" "$someonewhocares"
+    echo -e "$ad_servers\n$malware_sites\n$someonewhocares" >> "$FILE_HOSTSLIST_URLS"
+}
+
 delete_hostsfile() {
     if [[ ! -e "$DIR_LISTS/$hostsfile" ]]; then
         echo "==> Error: Invalid name, no such hosts list filename. Use '$(basename $0) -f' to list hosts lists."
@@ -127,12 +135,13 @@ Options:
     -r, --remove <domain>               Remove a <domain>
     -l, --list                          List manually blocked domains
     -c, --check <domain>                Check whether the domain is blocked (is in the /etc/hosts file)
+    -G, --get-predefined-hostsfiles     Download predefined hosts files
     -g, --get-hostsfile <url>           Download a hosts file (need to be a plain text file!)
     -d, --delete-hostsfile <filename>   Delete the <filename> hosts file from \$DIR_LISTS directory (use the filename only, don't include the path!)
     -f, --list-hostsfiles               List the url's of the downloaded hosts files
     -u, --update-hostfiles              Update downloaded hosts files
     -b, --build                         Build the /etc/hosts file from all downloaded hosts and manual blocked domains
-    -ub, --update-build                 Update hosts files and build them
+    -B, --update-build                  Update hosts files and build them
     -h, --help                          This help
 EOF
 }
@@ -148,7 +157,9 @@ case "$1" in
 
     --get-hostsfile|-g) url=$2 get;;
 
-    --delete-hostsfile|-d) hostsfile=$2 remove_hostsfile;;
+    --get-predefined-hostsfiles|-G) get_predefined;;
+
+    --delete-hostsfile|-d) hostsfile=$2 delete_hostsfile;;
 
     --list-hostsfiles|-f) cat "$FILE_HOSTSLIST_URLS";;
 
@@ -156,7 +167,7 @@ case "$1" in
 
     --build|-b) build;;
 
-    --update-build|-ub) update && build;;
+    --update-build|-ub|-B) update && build;;
 
     --help|-h|*)
     if [[ -f $FILE_LASTBUILD ]]; then
