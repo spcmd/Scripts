@@ -31,8 +31,19 @@ normal_fg="#ccc"
 selected_bg="#1DB954"
 selected_fg="#181818"
 
+# For Awesome WM: switch to spotify's tag after selecting or searching
+awm_switch="yes" # yes or no/empty
+awm_screen="1"
+awm_tag="4"
+
 #==================================
 
+# awesome wm switch to tag function
+awm_switch_to_tag() {
+    echo "local awful = require('awful') ; return awful.tag.viewonly(tags[$awm_screen][$awm_tag])" | awesome-client
+}
+
+# dmenu styling
 DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
 
 # Pipe album list to dmenu
@@ -58,6 +69,11 @@ if [[ $album = /* ]];then
     spotify_uri="$(curl -s "$api_url" | grep --color=never -E -o "spotify:$type:[a-zA-Z0-9]+" -m 1)"
     dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$spotify_uri" > /dev/null
 
+    # awesome wm - switch to spotify's tag
+    if [[ $awm_switch = "yes" ]]; then
+        awm_switch_to_tag
+    fi
+
     # -- DEBUG ---
     #echo -e "This was a search for: \033[0;33m$query\033[0m"
     #echo -e "type: \033[0;33m$type\033[0m"
@@ -79,6 +95,11 @@ else
     else
         # open the album in spotify
         dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:spotify:album:$album_id"
+
+        # awesome wm - switch to spotify's tag
+        if [[ $awm_switch = "yes" ]]; then
+            awm_switch_to_tag
+        fi
 
         # -- DEBUG ---
         #echo -e "album: \033[0;33m$album\033[0m"
