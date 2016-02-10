@@ -1,0 +1,88 @@
+#!/bin/bash
+#                                      _
+#         ___ _ __   ___ _ __ ___   __| |
+#        / __| '_ \ / __| '_ ` _ \ / _` |
+#        \__ | |_) | (__| | | | | | (_| |
+#        |___| .__/ \___|_| |_| |_|\__,_|
+#             |_|
+#
+#                   spotymenu
+#               Created by: spcmd
+#           http://spcmd.github.io
+#           https://github.com/spcmd
+#           https://gist.github.com/spcmd
+#
+
+#==================================
+# Configurable Options
+#==================================
+
+# File that contains the album list
+file_albumlist=$HOME/spoty_albums
+
+# Artist and Album separator in the list
+separator=" - "
+
+# Colors
+font="monospace-10"
+list_size="10"
+normal_bg="#181818"
+normal_fg="#ccc"
+selected_bg="#1DB954"
+selected_fg="#181818"
+
+#==================================
+
+DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
+
+# Pipe album list to dmenu
+album=$(awk -F '|' -v sep="$separator" '{print $1 sep $2}' $file_albumlist | $DMENU)
+
+# Check whether it was a search
+if [[ $album = /* ]];then
+
+    if [[ $album = /album* ]]; then
+        type="album"
+        query=$(echo "$album" | sed -e 's|/album||' -e 's/ /+/g')
+        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
+    elif [[ $album = /track* ]]; then
+        type="track"
+        query=$(echo "$album" | sed -e 's|/track||' -e 's/ /+/g')
+        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
+    else
+        type="track"
+        query=$(echo "$album" | awk -F '-' '{gsub("/",""); a=$1; t=$2; gsub(" ","+",a);sub(" ","",t);gsub(" ","+",t);print "artist:"a "track:"t}')
+        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
+    fi
+
+    spotify_uri="$(curl -s "$api_url" | grep --color=never -E -o "spotify:$type:[a-zA-Z0-9]+" -m 1)"
+    dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$spotify_uri" > /dev/null
+
+    # -- DEBUG ---
+    #echo -e "This was a search for: \033[0;33m$query\033[0m"
+    #echo -e "type: \033[0;33m$type\033[0m"
+    #echo -e "spotify_uri: \033[0;33m$spotify_uri\033[0m"
+    #exit
+
+# If it wasn't a search then load the album
+else
+
+    # Transform the custom separator format to the default pipe delimeted format (like in the file_albumlist)
+    get_album=$(echo "$album" | awk -v sep="$separator" '{gsub(sep,"|");print}')
+
+    # Get the Album ID
+    album_id=$(awk -F '|' '/'"$get_album"'/{print $NF}' $file_albumlist)
+
+    # If no album selected, exit
+    if [[ -z $get_album ]]; then
+        exit
+    else
+        # open the album in spotify
+        dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:spotify:album:$album_id"
+
+        # -- DEBUG ---
+        #echo -e "album: \033[0;33m$album\033[0m"
+        #echo -e "get_album: \033[0;33m$get_album\033[0m"
+        #echo -e "album_id: \033[0;33m$album_id\033[0m"
+    fi
+fi
