@@ -1,0 +1,22 @@
+#!/bin/sh
+cachedir=${XDG_CACHE_HOME:-"$HOME/.cache"}
+if [ -d "$cachedir" ]; then
+	cache=$cachedir/dmenu_run
+else
+	cache=$HOME/.dmenu_cache # if no xdg dir, fall back to dotfile in ~
+fi
+
+# Run terminal apps in terminal
+# Based on: https://bbs.archlinux.org/viewtopic.php?pid=1088164#p1088164
+# Added: xresource_name option for running apps with urxvtc
+# in your ~/dmenu_term_apps file use this format if you want to pass xresource_name:
+# ranger -name ranger
+APP=$(
+	IFS=:
+	if stest -dqr -n "$cache" $PATH; then
+		stest -flx $PATH | sort -u | tee "$cache" | dmenu "$@"
+	else
+		dmenu "$@" < "$cache"
+	fi
+)
+grep -q -w "$APP" ~/.dmenu_term_apps && xresource_name=$(awk '/'"$APP"'/{print $2" "$3}' ~/.dmenu_term_apps) && urxvtc $xresource_name -e $APP || echo $APP | ${SHELL:-"/bin/sh"} &
