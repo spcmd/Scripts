@@ -25,7 +25,7 @@ separator=" - "
 
 # Colors
 font="monospace-10"
-list_size="10"
+list_size="20"
 normal_bg="#181818"
 normal_fg="#ccc"
 selected_bg="#1DB954"
@@ -52,17 +52,19 @@ album=$(awk -F '|' -v sep="$separator" '{print $1 sep $2}' $file_albumlist | $DM
 # Check whether it was a search
 if [[ $album = /* ]];then
 
-    if [[ $album = /album* ]]; then
+    # search for: album
+    if [[ $album = /album* ]] || [[ $album = /b* ]]; then
         type="album"
-        query=$(echo "$album" | sed -e 's|/album||' -e 's/ /+/g')
+        query=$(echo "$album" | sed -e 's|/album||' -e 's|/b||' -e 's/ /+/g')
         api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
-    elif [[ $album = /track* ]]; then
-        type="track"
-        query=$(echo "$album" | sed -e 's|/track||' -e 's/ /+/g')
+    # search for: artist
+    elif [[ $album = /artist* ]] || [[ $album = /a* ]]; then
+        type="artist"
+        query=$(echo "$album" | sed -e 's|/artist||' -e 's|/a||' -e 's/ /+/g')
         api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
     else
         type="track"
-        query=$(echo "$album" | awk -F '-' '{gsub("/",""); a=$1; t=$2; gsub(" ","+",a);sub(" ","",t);gsub(" ","+",t);print "artist:"a "track:"t}')
+        query=$(echo "$album" | sed -e 's|/||' -e 's/ /+/g')
         api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
     fi
 
@@ -74,11 +76,10 @@ if [[ $album = /* ]];then
         awm_switch_to_tag
     fi
 
-    # -- DEBUG ---
+    ## -- DEBUG ---
     #echo -e "This was a search for: \033[0;33m$query\033[0m"
     #echo -e "type: \033[0;33m$type\033[0m"
     #echo -e "spotify_uri: \033[0;33m$spotify_uri\033[0m"
-    #exit
 
 # If it wasn't a search then load the album
 else
