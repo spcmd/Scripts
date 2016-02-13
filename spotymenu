@@ -20,11 +20,6 @@
 # File that contains the album list
 file_albumlist=$HOME/.spoty_albums
 
-# Path to JSON.awk
-# You must have this if you want to use the `autoplay_album` option
-# JSON.awk was written by step- (https://github.com/step-/JSON.awk)
-file_json_awk=$HOME/Scripts/JSON.awk
-
 # Artist and Album separator in the displayed -dmenu- list
 separator=" - "
 
@@ -37,7 +32,6 @@ selected_bg="#1DB954"
 selected_fg="#181818"
 
 # Autoplay selected album (local album list), yes or no/empty
-# JSON.awk file needed, see: file_json_awk above!
 autoplay_album="yes"
 
 # Autoplay search result, yes or no/empty
@@ -128,9 +122,9 @@ else
     else
         # 2.2.1.1 open the album in spotify
         if [[ $autoplay_album = "yes" ]]; then
-            track_id=$(curl --silent -X GET "https://api.spotify.com/v1/albums/$album_id/tracks" > /tmp/spotymenu.json && echo "/tmp/spotymenu.json" | awk -f "$file_json_awk" | awk -F']' '/^\["items",0,"id"]/{gsub(/^[ \t]+/, "", $2);gsub(/"/,"", $2);print $2}')
+            track_uri=$(curl --silent -X GET "https://api.spotify.com/v1/albums/$album_id/tracks" | awk -F'"' '/track_number/{i++}i==1 && /uri/ {print $4;exit}')
             dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop &&\
-            dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:spotify:track:$track_id"
+            dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$track_uri"
         # 2.2.1.2. else switch to album and don't autoplay
         else
             dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:spotify:album:$album_id"
