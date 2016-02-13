@@ -12,6 +12,7 @@
 #           https://github.com/spcmd
 #           https://gist.github.com/spcmd
 #
+#
 
 #==================================
 # Configurable Options
@@ -19,6 +20,9 @@
 
 # File that contains the album list
 file_albumlist=$HOME/.spoty_albums
+
+# File that contains the list of playlists
+file_playlists=$HOME/.spoty_playlists
 
 # Artist and Album separator in the displayed -dmenu- list
 separator=" - "
@@ -31,11 +35,22 @@ normal_fg="#ccc"
 selected_bg="#1DB954"
 selected_fg="#181818"
 
+# Show currently playing track info at the top of the list
+show_playing_track="yes"
+
+# Playing track prefix string and separator line
+playing_track_prefix=">>> Playing: "
+playing_track_separator="\n---------------------------------------------------------------------------------------------"
+
 # Autoplay selected album (local album list), yes or no/empty
 autoplay_album="yes"
 
 # Autoplay search result, yes or no/empty
-autoplay_search_result="yes" 
+autoplay_search_result="yes"
+
+# Search history
+use_search_history="yes"
+file_search_history=$HOME/.spoty_search_history
 
 # For Awesome WM: switch to spotify's tag after selecting or searching
 awm_switch="yes" # yes or no/empty
@@ -43,61 +58,128 @@ awm_screen="1"
 awm_tag="4"
 
 #==================================
+# Functions and variables
+#==================================
 
-# awesome wm switch to tag function
 awm_switch_to_tag() {
     echo "local awful = require('awful') ; return awful.tag.viewonly(tags[$awm_screen][$awm_tag])" | awesome-client
 }
 
-dbus_stop() {
-    dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop
-}
-dbus_open() {
-    dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$spotify_uri" > /dev/null
-}
+search_album() {
+    type="album"
+    query=$(echo "$album" | sed -e 's|/album||' -e 's|/b||' -e 's/ /+/g')
+    api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
+    dbus_call() { $dbus_openuri "string:$spotify_uri"; }
 
-
-# dmenu styling
-DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
-
-#==================================
-
-# 1. Pipe album list to dmenu
-album=$(awk -F '|' -v sep="$separator" '{print $1 sep $2}' $file_albumlist | $DMENU)
-
-# 2.1. Check whether it was a search
-if [[ $album = /* ]];then
-
-    # search for: album
-    if [[ $album = /album* ]] || [[ $album = /b* ]]; then
-        type="album"
-        query=$(echo "$album" | sed -e 's|/album||' -e 's|/b||' -e 's/ /+/g')
-        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
-        dbus_call() { dbus_open; }
-    # search for: artist
-    elif [[ $album = /artist* ]] || [[ $album = /a* ]]; then
-        type="artist"
-        query=$(echo "$album" | sed -e 's|/artist||' -e 's|/a||' -e 's/ /+/g')
-        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
-        dbus_call() { dbus_open; }
-    # search for artis and/or track
-    else
-        type="track"
-        query=$(echo "$album" | sed -e 's|/||' -e 's/ /+/g')
-        api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
-            if [[ $autoplay_search_result = "yes" ]]; then
-                dbus_call() { dbus_stop && dbus_open; }
-            else
-                dbus_call() { dbus_open; }
-            fi
+    # record search query to history?
+    if [[ $use_search_history = "yes" ]]; then
+        echo "$album" >> $file_search_history
     fi
 
+    # run search
     spotify_uri="$(curl -s "$api_url" | grep --color=never -E -o "spotify:$type:[a-zA-Z0-9]+" -m 1)"
     dbus_call
-
     # awesome wm - switch to spotify's tag
     if [[ $awm_switch = "yes" ]]; then
         awm_switch_to_tag
+    fi
+}
+
+search_artist() {
+    type="artist"
+    query=$(echo "$album" | sed -e 's|/artist||' -e 's|/a||' -e 's/ /+/g')
+    api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
+    dbus_call() { $dbus_openuri "string:$spotify_uri"; }
+
+    # record search query to history?
+    if [[ $use_search_history = "yes" ]]; then
+        echo "$album" >> $file_search_history
+    fi
+
+    # run search
+    spotify_uri="$(curl -s "$api_url" | grep --color=never -E -o "spotify:$type:[a-zA-Z0-9]+" -m 1)"
+    dbus_call
+    # awesome wm - switch to spotify's tag
+    if [[ $awm_switch = "yes" ]]; then
+        awm_switch_to_tag
+    fi
+}
+search_default() {
+    type="track"
+    query=$(echo "$album" | sed -e 's|/||' -e 's/ /+/g')
+    api_url="https://api.spotify.com/v1/search?q=$query&type=$type"
+    if [[ $autoplay_search_result = "yes" ]]; then
+        dbus_call() { $dbus_stop && $dbus_openuri "string:$spotify_uri" > /dev/null; }
+    else
+        dbus_call() { $dbus_openuri "string:$spotify_uri"; }
+    fi
+
+    # record search query to history?
+    if [[ $use_search_history = "yes" ]]; then
+        echo "$album" >> $file_search_history
+    fi
+
+    # run search
+    spotify_uri="$(curl -s "$api_url" | grep --color=never -E -o "spotify:$type:[a-zA-Z0-9]+" -m 1)"
+    dbus_call
+    # awesome wm - switch to spotify's tag
+    if [[ $awm_switch = "yes" ]]; then
+        awm_switch_to_tag
+    fi
+}
+
+# dbus calls
+dbus_stop="dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop"
+dbus_openuri="dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri"
+dbus_get_meta="dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata"
+
+# currently playing song
+playing_artist=$($dbus_get_meta | awk 'gsub("\042","")sub("string","")gsub(/^[ \t]+/,"")c&&!--c;/artist/{c=2}')
+playing_title=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:title"/{f=1}')
+playing_album=$($dbus_get_meta |awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:album"/{f=1}')
+
+#==================================
+# Do the stuff
+#==================================
+
+# 0. dmenu styling
+DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
+
+# 1. Pipe album list to dmenu
+
+if [[ ! -f $file_albumlist ]]; then
+    echo "Error: can't find $file_albumlist" | $DMENU
+else
+    if [[ $show_playing_track = "yes" ]]; then
+        album=$(awk -F '|' \
+            -v sep="$separator" \
+            -v artist="$playing_artist" \
+            -v title="$playing_title" \
+            -v album="$playing_album" \
+            -v psep="$playing_track_separator" \
+            -v pfx="$playing_track_prefix" \
+            'BEGIN {print pfx artist sep title" ("album")"psep}{print $1 sep $2}' $file_albumlist \
+            | $DMENU)
+    else
+        album=$(awk -F '|' \
+            -v sep="$separator" \
+            '{print $1 sep $2}' $file_albumlist \
+            | $DMENU)
+    fi
+fi
+
+# 2.1. Check whether it was a search
+if [[ $album = /* ]]; then
+
+    # search for: album
+    if [[ $album = /album* ]] || [[ $album = /b* ]]; then
+        search_album
+    # search for: artist
+    elif [[ $album = /artist* ]] || [[ $album = /a* ]]; then
+        search_artist
+    # search for artist and/or track
+    else
+        search_default
     fi
 
     ## -- DEBUG ---
@@ -105,7 +187,50 @@ if [[ $album = /* ]];then
     #echo -e "type: \033[0;33m$type\033[0m"
     #echo -e "spotify_uri: \033[0;33m$spotify_uri\033[0m"
 
-# 2.2. If it wasn't a search then load the album
+# 2.2 OR Show the search history
+elif [[ $album = ? ]]; then
+
+    if [[ $use_search_history = "yes" ]]; then
+
+        if [[ ! -f $file_search_history ]]; then
+            echo "Error: can't find $file_search_history" | $DMENU
+        else
+            search_string=$(tac $file_search_history | uniq | $DMENU)
+            if [[ $search_string = /b* ]] || [[ $search_string = /album* ]]; then
+                album="$search_string" && search_album
+            elif [[ $search_string = /a* ]] || [[ $search_string = /artist* ]]; then
+                album="$search_string" && search_artist
+            elif [[ $search_string = /* ]]; then
+                album="$search_string" && search_default
+            else
+                exit
+            fi
+        fi
+
+    else
+        exit
+    fi
+
+# 2.3 OR Switch to the playlists
+elif [[ $album = :playlist ]] || [[ $album = :p ]]; then
+
+    if [[ ! -f $file_playlists ]]; then
+        echo "Error: can't find $file_playlists" | $DMENU
+    else
+        playlist=$(awk -F '|' '{print $1}' $file_playlists | $DMENU)
+        playlist_uri=$(awk -F '|' 'index($0, "'"$playlist"'"){print $NF}' $file_playlists | head -n 1)
+
+        if [[ -z $playlist ]]; then
+            exit
+        else
+            $dbus_openuri "string:$playlist_uri"
+            if [[ $awm_switch = "yes" ]]; then
+                awm_switch_to_tag
+            fi
+        fi
+    fi
+
+# 2.4. OR Load the album list
 else
 
     # Transform the custom separator format to the default pipe delimeted format (like in the file_albumlist)
@@ -116,28 +241,27 @@ else
     # Also the list uses pipes as delimeters (and the pipe is a special char in regex).
     album_id=$(awk -F '|' 'index($0, "'"$get_album"'"){print $NF}' $file_albumlist | head -n 1)
 
-    # 2.2.1. If no album selected, exit
+    # 2.4.1. If no album selected, exit
     if [[ -z $get_album ]]; then
         exit
     else
-        # 2.2.1.1 open the album in spotify
+        # 2.4.1.1 open the album in spotify
         if [[ $autoplay_album = "yes" ]]; then
             track_uri=$(curl --silent -X GET "https://api.spotify.com/v1/albums/$album_id/tracks" | awk -F'"' '/track_number/{i++}i==1 && /uri/ {print $4;exit}')
-            dbus-send  --print-reply --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop &&\
-            dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:$track_uri"
-        # 2.2.1.2. else switch to album and don't autoplay
+            $dbus_stop && $dbus_openuri "string:$track_uri"
+        # 2.4.1.2. else switch to album and don't autoplay
         else
-            dbus-send --print-reply=literal --session --type=method_call --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.OpenUri "string:spotify:album:$album_id"
+            $dbus_openuri "string:spotify:album:$album_id"
             # awesome wm - switch to spotify's tag
             if [[ $awm_switch = "yes" ]]; then
                 awm_switch_to_tag
             fi
         fi
-        
+
         # -- DEBUG ---
         #echo -e "album: \033[0;33m$album\033[0m"
         #echo -e "get_album: \033[0;33m$get_album\033[0m"
         #echo -e "album_id: \033[0;33m$album_id\033[0m"
-        #echo -e "track_id: \033[0;33m$track_id\033[0m"
+        #echo -e "track_uri: \033[0;33m$track_uri\033[0m"
     fi
 fi
