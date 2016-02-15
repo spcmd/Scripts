@@ -18,11 +18,17 @@
 # Configurable Options
 #==================================
 
+# Dir where spotymenu stores its config and lists
+#dir_spotymenu=$HOME/spotymenu
+
 # File that contains the album list
 file_albumlist=$HOME/.spoty_albums
 
 # File that contains the list of playlists
 file_playlists=$HOME/.spoty_playlists
+
+# Default file where the favorites saved to
+file_favorite_tracks=$HOME/favorite_tracks
 
 # Artist and Album separator in the displayed -dmenu- list
 separator=" - "
@@ -79,6 +85,11 @@ playing_album=$($dbus_get_meta |awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/
 playing_tracknr=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"xesam:trackNumber"/{f=1}')
 playing_trackid=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"mpris:trackid"/{f=1}')
 playing_arturl=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"mpris:artUrl"/{f=1}')
+
+playing_length=$($dbus_get_meta | awk 'f{$1=$2=""; gsub("\042",""); gsub(/^[ \t]+/,""); print $0;f=0} /"mpris:length"/{f=1}')
+playing_seconds=$(($playing_length/1000000))
+playing_min_sec=$(printf ""%d:%02d"\n" $(($playing_seconds%3600/60)) $(($playing_seconds%60)))
+
 
 awm_switch_to_tag() {
     echo "local awful = require('awful') ; return awful.tag.viewonly(tags[$awm_screen][$awm_tag])" | awesome-client
@@ -246,7 +257,7 @@ elif [[ $input = :quit ]] || [[ $input = :q ]]; then
     fi
 
 # --- Detailed Info about the played album/song ---
-elif [[ $input = :info ]] || [[ $input = :i ]] || [[ $input = $playing_track_prefix* ]]; then
+elif [[ $input = :info ]] || [[ $input = :i ]]; then
     infolist=$(echo -e "\
      Information:  (press Enter to copy the entry to the clipboard)\n\
      ==============================================================\n\
@@ -254,6 +265,7 @@ elif [[ $input = :info ]] || [[ $input = :i ]] || [[ $input = $playing_track_pre
       Title: $playing_title\n\
       Album: $playing_album\n\
       Track: $playing_tracknr\n\
+     Length: $playing_min_sec\n\
          ID: $playing_trackid\n\
       Cover: $playing_arturl\n\
      ==============================================================\
@@ -263,7 +275,7 @@ elif [[ $input = :info ]] || [[ $input = :i ]] || [[ $input = $playing_track_pre
 
 # --- Add current album to the album list ---
 elif [[ $input = :add ]] || [[ $input = :a ]]; then
-    query=$(echo "$playing_album" | sed 's/ /+/g')
+    query=$(echo "$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.//g')
     playing_albumid=$(curl -s "https://api.spotify.com/v1/search?q=$query&type=album" | awk -F':' '/spotify:album:.+/{gsub(/^[ \t]+/, "");gsub("\042","");print $NF;exit}')
     if [[ ! -z $playing_albumid ]]; then
         add_answer=$(echo -e "Add '$playing_album' to the albumlist?\nyes\nno" | $DMENU)
@@ -274,8 +286,24 @@ elif [[ $input = :add ]] || [[ $input = :a ]]; then
         exit
     fi
 
+# --- Album TRACKLIST ---
+elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
+    query=$(echo "$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.//g')
+    playing_albumid=$(curl -s "https://api.spotify.com/v1/search?q=$query&type=album" | awk -F':' '/uri/{gsub(/^[ \t]+/, "");gsub("\042","");print $NF;exit}')
+    if [[ ! -z $playing_albumid ]]; then
+        tracklist=$(curl --silent -X GET "https://api.spotify.com/v1/albums/$playing_albumid/tracks?limit=50" | jq -r '.items | map([.track_number, .artists[].name, .name, .id | tostring] | join("|")) | join("\n")' | awk -v len=30 -v pfx="$playing_track_prefix" 'BEGIN{printf "%-6s%-35s%-35s%-30s%-80s%-80s\n","Nr.","Artist","Title","ID","\n----------------------------------------------------------------------------------------\n",pfx"'"$playing_tracknr $playing_title"'"}{if(length($1)>len) $1=substr($1,1,30)"..."; if(length($2)>len) $2=substr($2,1,30)"..."; if(length($3)>len) $3=substr($3,1,30)"..."; printf "%-6s%-35s%-35s%-30s\n",$1,$2,$(NF-1),$NF}' FS=\| | $DMENU)
+        track_id=$(echo "$tracklist" | awk '{print $NF}')
+        if [[ ! -z $track_id ]]; then
+            $dbus_stop && $dbus_openuri "string:spotify:track:$track_id"
+        else
+            exit
+        fi
+    else
+        exit
+    fi
+
 # --- Delete album from the album list ---
-elif [[ $input = :delete ]] || [[ $input = :d ]]; then
+elif [[ $input = :del* ]] || [[ $input = :d ]]; then
 
     if [[ ! -f $file_albumlist ]]; then
         echo "Error: can't find $file_albumlist" | $DMENU
@@ -294,22 +322,59 @@ elif [[ $input = :delete ]] || [[ $input = :d ]]; then
         fi
     fi
 
+# --- Favorite tracks: ADD ---
+elif [[ $input = :fadd ]] || [[ $input = :fa ]]; then
+
+    echo "$playing_artist|$playing_title|$playing_album|$playing_min_sec|$playing_trackid" >> $file_favorite_tracks &&\
+    echo -e "Done:\n'$playing_artist - $playing_title' added to the favorites.\n" | $DMENU
+
+# --- Favorite tracks: DELETE ---
+elif [[ $input = :fd* ]]; then
+
+    get_track=$(awk -v len=30 'BEGIN{printf "%-30s%-35s%-35s%-6s%-38s%-100s\n","Artist","Title","Album","Time","URI","\n----------------------------------------------------------------------------------------------------------------------------------------------"}{if(length($1)>len) $1=substr($1,1,30)"..."; if(length($2)>len) $2=substr($2,1,30)"..."; if(length($3)>len) $3=substr($3,1,30)"..."; printf "%-30s%-35s%-35s%-6s%-38s\n",$1,$2,$3,$4,$5}' FS=\| $file_favorite_tracks | $DMENU_DELETE)
+    track_uri=$(echo "$get_track" | awk '{print $NF}')
+    track_artist_title=$(awk -F'|' '/'"$track_uri"'/{print $1" - "$2}' $file_favorite_tracks)
+
+    if [[ ! -z $get_track ]]; then
+        delete_answer=$(echo -e "Delete '$track_artist_title' from the favorites?\nyes\nno" | $DMENU_DELETE)
+        [[ $delete_answer = "yes" ]] && sed -i "/$track_uri/d" $file_favorite_tracks\
+        && echo -e "Done:\n'$track_artist_title' deleted from the favorites\n" | $DMENU_DELETE \
+        || exit
+    else
+        exit
+    fi
+
+# --- Favorite tracks: LIST ---
+elif [[ $input = :fav* ]] || [[ $input = :f ]]; then
+
+    get_track=$(awk -v len=30 'BEGIN{printf "%-30s%-35s%-35s%-6s%-38s%-100s\n","Artist","Title","Album","Time","URI","\n----------------------------------------------------------------------------------------------------------------------------------------------"}{if(length($1)>len) $1=substr($1,1,30)"..."; if(length($2)>len) $2=substr($2,1,30)"..."; if(length($3)>len) $3=substr($3,1,30)"..."; printf "%-30s%-35s%-35s%-6s%-38s\n",$1,$2,$3,$4,$5}' FS=\| $file_favorite_tracks | $DMENU)
+    track_uri=$(echo "$get_track" | awk '{print $NF}')
+
+    if [[ ! -z $get_track ]]; then
+        $dbus_stop && $dbus_openuri "string:$track_uri"
+    else
+        exit
+    fi
+
 # --- Help ---
 elif [[ $input = :help ]] || [[ $input = :h ]]; then
      echo -e "\
          Help\n\
-         ====================================================================\n\
-         /a  /artist    Search artist\n\
-         /b  /album     Search album\n\
-         /              Search track (with or without artist)\n\
-         ?              Show search history\n\
-         :p  :playlist  Switch to playlists\n\
-         :a  :add       Add current album to the album list\n\
-         :d  :delete    Delete album from the album list\n\
-         :i  :info      Show detailed information about the played track/album\n\
-         :q  :quit      Quit (close Spotify)\n\
-         :h  :help      This help\n\
-         ====================================================================\
+         ======================================================================\n\
+         /               Search track (with or without artist)\n\
+         /a   /artist    Search artist\n\
+         /b   /album     Search album\n\
+         ?               Show search history\n\
+         :p   :playlist  Switch to the exported playlists\n\
+         :a   :add       Add current album to the album list\n\
+         :d   :delete    Delete album from the album list\n\
+         :f   :fav       Show favorite tracks' list\n\
+         :fa  :fadd      Add track to the favorites list\n\
+         :fd  :fdel      Delete track from the favorites list\n\
+         :i   :info      Show detailed information about the played track/album\n\
+         :q   :quit      Quit (close Spotify)\n\
+         :h   :help      This help\n\
+         ======================================================================\
          " | $DMENU
 
 # --- Load the album list ---
