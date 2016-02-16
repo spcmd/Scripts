@@ -19,7 +19,10 @@
 #==================================
 
 # Dir where spotymenu stores its config and lists
-#dir_spotymenu=$HOME/spotymenu
+dir_spotymenu=$HOME/spotymenu
+
+# Dir that contains the cached tracklists
+dir_tracklist_cache=$dir_spotymenu/tracklist_cache
 
 # File that contains the album list
 file_albumlist=$HOME/.spoty_albums
@@ -44,6 +47,7 @@ selected_delete_bg="#c30000"
 selected_delete_fg="#ffffff"
 
 # Show currently playing track info at the top of the list
+# you can hit ENTER on it and it will show the album's tracklist
 show_playing_track="yes"
 
 # Playing track prefix string and separator line
@@ -60,6 +64,23 @@ autoplay_search_result="yes"
 use_search_history="yes"
 file_search_history=$HOME/.spoty_search_history
 
+# Use tracklist cache:
+# load tracklists from local files (cache) or always get them via spotify API (a bit slower)
+use_tracklist_cache="yes"
+
+# Tracklist max length (width) of the strings/texts
+# need to be lower value than the column width!
+tl_elem_len=30
+
+# Tracklist column width
+tl_col_tracknr=5
+tl_col_artist=35
+tl_col_title=35
+tl_col_id=20
+
+# Tracklist separator line width
+tl_sep_line_width=$(($tl_col_tracknr + $tl_col_artist + $tl_col_title + $tl_col_id + 2 ))
+
 # For Awesome WM: switch to spotify's tag after selecting or searching
 awm_switch="yes" # yes or no/empty
 awm_screen="1"
@@ -67,6 +88,17 @@ awm_tag="4"
 
 # Confirm quit OR quit without warning?
 confirm_quit="yes"
+
+#==================================
+# Dependency check
+#==================================
+
+if [[ ! -x /bin/jq ]]; then
+    err_msg="Error: can't find 'jq'. Make sure you have it installed! https://stedolan.github.io/jq/"
+    echo -e "$err_msg"
+    notify-send "$err_msg"
+    exit
+fi
 
 #==================================
 # Functions and variables
@@ -275,10 +307,12 @@ elif [[ $input = :info ]] || [[ $input = :i ]]; then
 
 # --- Add current album to the album list ---
 elif [[ $input = :add ]] || [[ $input = :a ]]; then
-    query=$(echo "$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.//g')
-    playing_albumid=$(curl -s "https://api.spotify.com/v1/search?q=$query&type=album" | awk -F':' '/spotify:album:.+/{gsub(/^[ \t]+/, "");gsub("\042","");print $NF;exit}')
+    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g')
+
+    playing_albumid=$(curl -s "https://api.spotify.com/v1/search?q=$query&type=album" | jq -r '.[].items[] | select(.name == "'"$playing_album"'") | .id' | head -n 1)
+
     if [[ ! -z $playing_albumid ]]; then
-        add_answer=$(echo -e "Add '$playing_album' to the albumlist?\nyes\nno" | $DMENU)
+        add_answer=$(echo -e "Add '$playing_artist - $playing_album' to the albumlist?\nyes\nno" | $DMENU)
         [[ $add_answer = "yes" ]] && echo "$playing_albumartist|$playing_album|$playing_albumid" >> $file_albumlist\
            && echo -e "Done:\n'$playing_album' added to the album list\n" | $DMENU \
            || exit
@@ -286,18 +320,72 @@ elif [[ $input = :add ]] || [[ $input = :a ]]; then
         exit
     fi
 
-# --- Album TRACKLIST ---
+# --- Album show tracklist ---
 elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
-    query=$(echo "$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.//g')
-    playing_albumid=$(curl -s "https://api.spotify.com/v1/search?q=$query&type=album" | awk -F':' '/uri/{gsub(/^[ \t]+/, "");gsub("\042","");print $NF;exit}')
+
+    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g')
+    playing_albumid=$(curl -s "https://api.spotify.com/v1/search?q=$query&type=album" | jq -r '.[].items[] | select(.name == "'"$playing_album"'") | .id' | head -n 1)
+
     if [[ ! -z $playing_albumid ]]; then
-        tracklist=$(curl --silent -X GET "https://api.spotify.com/v1/albums/$playing_albumid/tracks?limit=50" | jq -r '.items | map([.track_number, .artists[].name, .name, .id | tostring] | join("|")) | join("\n")' | awk -v len=30 -v pfx="$playing_track_prefix" 'BEGIN{printf "%-6s%-35s%-35s%-30s%-80s%-80s\n","Nr.","Artist","Title","ID","\n----------------------------------------------------------------------------------------\n",pfx"'"$playing_tracknr $playing_title"'"}{if(length($1)>len) $1=substr($1,1,30)"..."; if(length($2)>len) $2=substr($2,1,30)"..."; if(length($3)>len) $3=substr($3,1,30)"..."; printf "%-6s%-35s%-35s%-30s\n",$1,$2,$(NF-1),$NF}' FS=\| | $DMENU)
+
+        # DEBUG
+        echo "playing_artist: $playing_artist"
+        echo "playing_albumartist: $playing_albumartist"
+        echo "playing_album: $playing_album"
+        echo "query: $query"
+        echo "playing_albumid: $playing_albumid"
+
+        # if we have tracklist cached, read tracklist from the file
+        if [[ -f $dir_tracklist_cache/$playing_albumid ]] && [[ $use_tracklist_cache = "yes" ]]; then
+            get_list=$(cat "$dir_tracklist_cache/$playing_albumid")
+
+        # if we don't have it cached, get it via API
+        else
+            # if tracklist cache enable, write the tracklist to a file
+            if [[ $use_tracklist_cache = "yes" ]]; then
+                get_list=$(\
+                    curl --silent -X GET "https://api.spotify.com/v1/albums/$playing_albumid/tracks?limit=50" \
+                    | jq -r '.items | map([.track_number, .artists[].name, .name, .id | tostring] | join("|")) | join("\n")' \
+                    | tee $dir_tracklist_cache/$playing_albumid \
+                    )
+            # else just get the tracklist and don't write it to a file
+            else
+                get_list=$(\
+                curl --silent -X GET "https://api.spotify.com/v1/albums/$playing_albumid/tracks?limit=50" \
+                | jq -r '.items | map([.track_number, .artists[].name, .name, .id | tostring] | join("|")) | join("\n")' \
+                )
+
+            fi
+        fi
+
+        # format the tracklist and show it
+        tracklist=$(echo "$get_list" \
+            | awk \
+            -v pfx="$playing_track_prefix" \
+            -v ptf="$playing_tracknr. $playing_title ($playing_album)" \
+            -v sep_line="$( printf '%0.s-' $(seq 1 $tl_sep_line_width))" \
+            -v len=$tl_elem_len \
+            -v c_nr=$tl_col_tracknr \
+            -v c_a=$tl_col_artist \
+            -v c_t=$tl_col_title \
+            -v c_i=$tl_col_id \
+            'BEGIN{ \
+                printf "%-1s%-"c_nr"s%-"c_a"s%-"c_t"s%-"c_i"s%-1s\n", \
+                pfx ptf"\n"sep_line"\n",\
+                "Nr.","Artist","Title","ID","\n"sep_line \
+            } \
+            {if (NF>4) $2=$2" "$3" "$4; if(length($2)>len) $2=substr($2,1,len)"..."; if(length($(NF-1))>len) $(NF-1)=substr($(NF-1),1,len)"..."; if ($1 == '"$playing_tracknr"') $1=$1".*"; else $1=$1"."; \
+                printf "%-"c_nr"s%-"c_a"s%-"c_t"s%-"c_i"s\n",$1,$2,$(NF-1),$NF}' FS=\| \
+            | $DMENU)
+
+        # get the track id & play the track
         track_id=$(echo "$tracklist" | awk '{print $NF}')
         if [[ ! -z $track_id ]]; then
             $dbus_stop && $dbus_openuri "string:spotify:track:$track_id"
         else
             exit
         fi
+
     else
         exit
     fi
@@ -361,19 +449,20 @@ elif [[ $input = :help ]] || [[ $input = :h ]]; then
      echo -e "\
          Help\n\
          ======================================================================\n\
-         /               Search track (with or without artist)\n\
-         /a   /artist    Search artist\n\
-         /b   /album     Search album\n\
-         ?               Show search history\n\
-         :p   :playlist  Switch to the exported playlists\n\
-         :a   :add       Add current album to the album list\n\
-         :d   :delete    Delete album from the album list\n\
-         :f   :fav       Show favorite tracks' list\n\
-         :fa  :fadd      Add track to the favorites list\n\
-         :fd  :fdel      Delete track from the favorites list\n\
-         :i   :info      Show detailed information about the played track/album\n\
-         :q   :quit      Quit (close Spotify)\n\
-         :h   :help      This help\n\
+         /                 Search track (with or without artist)\n\
+         /a   /artist      Search artist\n\
+         /b   /album       Search album\n\
+         ?                 Show search history\n\
+         :p   :playlist    Switch to the exported playlists\n\
+         :a   :add         Add current album to the album list\n\
+         :d   :delete      Delete album from the album list\n\
+         :t   :tracklist   Show tracklist of the current album\n\
+         :f   :fav         Show favorite tracks' list\n\
+         :fa  :fadd        Add track to the favorites list\n\
+         :fd  :fdel        Delete track from the favorites list\n\
+         :i   :info        Show detailed information about the played track/album\n\
+         :q   :quit        Quit (close Spotify)\n\
+         :h   :help        This help\n\
          ======================================================================\
          " | $DMENU
 
@@ -381,12 +470,13 @@ elif [[ $input = :help ]] || [[ $input = :h ]]; then
 else
 
     # Transform the custom separator format to the default pipe delimeted format (like in the file_albumlist)
-    get_album=$(echo "$input" | awk -v sep="$separator" '{sub(sep,"|");print}')
+    get_album=$(echo "$input" | awk  'BEGIN{FS=" - "; OFS=" - "} {$1="";sub("-","");gsub(/^[ \t]+/, ""); print}')
 
     # Get the Album ID
     # Use string match (index) instead of regex because the album names can contain special regex characters.
     # Also the list uses pipes as delimeters (and the pipe is a special char in regex).
-    album_id=$(awk -F '|' 'index($0, "'"$get_album"'"){print $NF}' $file_albumlist | head -n 1)
+    album_id=$(awk -F '|' '$(NF-1)=="'"$get_album"'" {print $NF}' $file_albumlist)
+
 
     # If no album selected, exit
     if [[ -z $get_album ]]; then
@@ -406,9 +496,9 @@ else
         fi
 
         # -- DEBUG ---
-        #echo -e "input/album: \033[0;33m$input\033[0m"
-        #echo -e "get_album: \033[0;33m$get_album\033[0m"
-        #echo -e "album_id: \033[0;33m$album_id\033[0m"
-        #echo -e "track_uri: \033[0;33m$track_uri\033[0m"
+        echo -e "input/album: \033[0;33m$input\033[0m"
+        echo -e "get_album: \033[0;33m$get_album\033[0m"
+        echo -e "album_id: \033[0;33m$album_id\033[0m"
+        echo -e "track_uri: \033[0;33m$track_uri\033[0m"
     fi
 fi
