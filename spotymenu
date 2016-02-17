@@ -131,7 +131,7 @@ awm_switch_to_tag() {
 }
 
 search_album() {
-    query=$(echo "$input" | sed -e 's|/album||' -e 's|/b||' -e 's/ /+/g')
+    query=$(echo "$input" | sed -e 's|/album||' -e 's|/b||' -e 's/ /+/g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
 
     # record search query to history?
     if [[ $use_search_history = "yes" ]]; then
@@ -158,7 +158,7 @@ search_album() {
 }
 
 search_artist() {
-    query=$(echo "$input" | sed -e 's|/artist||' -e 's|/a||' -e 's/ /+/g')
+    query=$(echo "$input" | sed -e 's|/artist||' -e 's|/a||' -e 's/ /+/g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
 
     # record search query to history?
     if [[ $use_search_history = "yes" ]]; then
@@ -192,7 +192,7 @@ search_artist() {
     fi
 }
 search_default() {
-    query=$(echo "$input" | sed -e 's|/||' -e 's/ /+/g')
+    query=$(echo "$input" | sed -e 's|/||' -e 's/ /+/g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
 
     # record search query to history?
     if [[ $use_search_history = "yes" ]]; then
@@ -263,7 +263,7 @@ elif [[ $input = /* ]]; then
     #echo -e "spotify_uri: \033[0;33m$spotify_uri\033[0m"
 
 # --- Show the search history ---
-elif [[ $input = ? ]]; then
+elif [[ $input = ":?" ]]; then
 
     if [[ $use_search_history = "yes" ]]; then
 
@@ -333,7 +333,7 @@ elif [[ $input = :info ]] || [[ $input = :i ]]; then
 
 # --- Add current album to the album list ---
 elif [[ $input = :add ]] || [[ $input = :a ]]; then
-    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g')
+    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
 
     playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=album" | jq -r '.[].items[] | select(.name == "'"$playing_album"'") | .id' | head -n 1)
 
@@ -349,10 +349,8 @@ elif [[ $input = :add ]] || [[ $input = :a ]]; then
 # --- Album show tracklist ---
 elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
 
-    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g')
+    query=$(echo "$playing_albumartist+$playing_album" | sed -e 's/ /+/g' -re 's/:|\(|\)|\.|,|&//g' | iconv -f UTF-8 -t ASCII//TRANSLIT)
     playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/search?q=$query&type=album" | jq -r '.[].items[] | select(.name == "'"$playing_album"'") | .id' | head -n 1)
-
-    if [[ ! -z $playing_albumid ]]; then
 
         # DEBUG
         #echo "playing_artist: $playing_artist"
@@ -360,6 +358,8 @@ elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
         #echo "playing_album: $playing_album"
         #echo "query: $query"
         #echo "playing_albumid: $playing_albumid"
+
+    if [[ ! -z $playing_albumid ]]; then
 
         # if we have tracklist cached, read tracklist from the file
         if [[ -f $dir_tracklist_cache/$playing_albumid ]] && [[ $use_tracklist_cache = "yes" ]]; then
@@ -388,7 +388,7 @@ elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
         tracklist=$(echo "$get_list" \
             | awk \
             -v pfx="$playing_track_prefix" \
-            -v ptf="$playing_tracknr. $playing_title ($playing_album)" \
+            -v ptf="$playing_tracknr. $playing_artist - $playing_title ($playing_album)" \
             -v sep_line="$( printf "%0.s$sep_line_char" $(seq 1 $sep_line_width))" \
             -v len=$tl_elem_len \
             -v c_nr=$tl_col_tracknr \
@@ -484,7 +484,7 @@ elif [[ $input = :help ]] || [[ $input = :h ]]; then
          /                 Search track (with or without artist)\n\
          /a   /artist      Search artist\n\
          /b   /album       Search album\n\
-         ?                 Show search history\n\
+         :?                Show search history\n\
          :p   :playlist    Switch to the exported playlists\n\
          :a   :add         Add current album to the album list\n\
          :d   :delete      Delete album from the album list\n\
@@ -528,9 +528,9 @@ else
         fi
 
         # -- DEBUG ---
-        echo -e "input/album: \033[0;33m$input\033[0m"
-        echo -e "get_album: \033[0;33m$get_album\033[0m"
-        echo -e "album_id: \033[0;33m$album_id\033[0m"
-        echo -e "track_uri: \033[0;33m$track_uri\033[0m"
+        #echo -e "input/album: \033[0;33m$input\033[0m"
+        #echo -e "get_album: \033[0;33m$get_album\033[0m"
+        #echo -e "album_id: \033[0;33m$album_id\033[0m"
+        #echo -e "track_uri: \033[0;33m$track_uri\033[0m"
     fi
 fi
