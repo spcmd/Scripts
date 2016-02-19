@@ -423,8 +423,9 @@ elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
                 if (NF>5) $2=$2" "$3; \
                 if(length($2)>len) $2=substr($2,1,len)"..."; \
                 if(length($(NF-2))>len) $(NF-2)=substr($(NF-2),1,len)"..."; \
-                if ($1 == '"$playing_tracknr"') $1=$1".*"; else $1=$1"."; \
-                printf "%-"c_nr"s %-"c_a"s %-"c_t"s %d:%02d  %-"c_i"s\n", $1, $2, $(NF-2), $(NF-1)%3600/60, $(NF-1)%60, $NF \
+                if ($1 == '"$playing_tracknr"') indicator="*"; else indicator=""; \
+                if ($1 < 10) $1=" "$1; \
+                    printf "%-"c_nr"s %-"c_a"s %-"c_t"s %d:%02d  %-"c_i"s\n", $1"." indicator, $2, $(NF-2), $(NF-1)%3600/60, $(NF-1)%60, $NF \
             }' FS=\| \
                 | $DMENU)
 
