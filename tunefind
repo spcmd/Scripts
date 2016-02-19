@@ -28,7 +28,8 @@ dump() {
     echo "--------------------------------------------------------------------------------"
     echo -e "                   $info_color$show$reset_color season: $info_color$season$reset_color episode: $info_color$episode$reset_color"
     echo "--------------------------------------------------------------------------------"
-    lynx -dump -display_charset="UTF-8" -nolist "http://www.tunefind.com/show/shameless/season-$season/$ep_id" | awk -F' by ' '/\*.[a-zA-Z0-9].+by.+$/ {sub(/^[ \t]+/, "");sub(/.+[a-zA-Z0-9]*$/,"'"$set_color"'&'"$reset_color"'",$2);sub(/\* [A-Za-z0-9].+$/,"'"$set_color"'&'"$reset_color"'",$1);sub("*"," -",$1);print "     "$2 $1;flag=1;next} /Get It|No preview available/{flag=0} flag {print}'
+
+    lynx -dump -display_charset="UTF-8" -nolist "http://www.tunefind.com/show/$show/season-$season/$ep_id" | awk -F' by ' '/\*.[a-zA-Z0-9].+\sby\s.+$/ {sub(/^[ \t]+/, "");sub(/.+[a-zA-Z0-9]*$/,"'"$set_color"'&'"$reset_color"'",$2);sub(/\* [A-Za-z0-9].+$/,"'"$set_color"'&'"$reset_color"'",$1);sub("*"," -",$1);print "     "$2 $1;flag=1;next} /Get It|No preview available/{flag=0} flag {print}'
 }
 
 # Do the stuff
