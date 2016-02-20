@@ -72,19 +72,16 @@ autoplay_album="yes"
 # If you don't get a tracklist loaded, try again a bit later
 use_tracklist_cache="yes"
 
-# Tracklist: max length (width) of the 'Artist' and the 'Title' column
-# need to be lower value than the column width settings for the artist and a the title below!
-tl_elem_len=35
+# Extra whitespace for seperating Artist and Title in the tracklist
+tl_separator_whitespace=1
 
-# Tracklist column width
-tl_col_tracknr=4 # should be okay: 2 digit + dot (.) + asterisk (*) (for the currently playing song)
-tl_col_artist=40
-tl_col_title=40
-tl_col_duration=12
-tl_col_id=20
-
-# Separator line (for tracklist and the above the album list)
+# Separator line character (for tracklist and the above the album list):
+# use a single character
 sep_line_char="-"
+
+# Separator line's width = number or characters
+# depends on screen resolution and the font size
+# for reference: 170 is for 768 px wide screen and monospace-10 font
 sep_line_width=170
 
 # For Awesome WM: switch to spotify's tag after selecting or searching
@@ -288,9 +285,9 @@ elif [[ $input = ":?" ]]; then
             echo "Error: can't find $file_search_history" | $DMENU
         else
             search_string=$(tac $file_search_history | uniq | $DMENU)
-            if [[ $search_string = /b* ]] || [[ $search_string = /album* ]]; then
+            if [[ $search_string =~ ^(\/b .+$)  ]] || [[ $search_string = /album* ]]; then
                 input="$search_string" && search_album
-            elif [[ $search_string = /a* ]] || [[ $search_string = /artist* ]]; then
+            elif [[ $search_string =~ ^(\/a .+$)  ]] || [[ $search_string = /artist* ]]; then
                 input="$search_string" && search_artist
             elif [[ $search_string = /* ]]; then
                 input="$search_string" && search_default
@@ -403,16 +400,18 @@ elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
         fi
 
         # format the tracklist and show it
+        max_width_artist=$(echo "$get_list" |  awk -F'|' 'length($2) > max {max=length($2)} END{print max}')
+        max_width_title=$(echo "$get_list" |  awk -F'|' 'length($(NF-2)) > max {max=length($(NF-2))} END{print max}')
+
         tracklist=$(echo "$get_list" \
-            | awk \
+            | awk -F'|' \
             -v pfx="$playing_track_prefix" \
             -v ptf="$playing_tracknr. $playing_artist - $playing_title ($playing_album)" \
-            -v sep_line="$( printf "%0.s$sep_line_char" $(seq 1 $sep_line_width))" \
-            -v len=$tl_elem_len \
-            -v c_nr=$tl_col_tracknr \
-            -v c_a=$tl_col_artist \
-            -v c_t=$tl_col_title \
-            -v c_i=$tl_col_id \
+            -v sep_line="$(printf "%0.s$sep_line_char" $(seq 1 $sep_line_width))" \
+            -v c_nr=4 \
+            -v c_a=$(($max_width_artist+$tl_separator_whitespace)) \
+            -v c_t=$(($max_width_title+$tl_separator_whitespace)) \
+            -v c_i=4 \
             'BEGIN{ \
                 printf "%-1s%-"c_nr"s %-"c_a"s %-"c_t"s %-"c_d"s  %-"c_i"s%-1s\n", \
                 pfx ptf"\n"sep_line"\n",\
@@ -420,9 +419,6 @@ elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
             } \
             { \
                 $(NF-1)=$(NF-1)/1000; \
-                if (NF>5) $2=$2" "$3; \
-                if(length($2)>len) $2=substr($2,1,len)"..."; \
-                if(length($(NF-2))>len) $(NF-2)=substr($(NF-2),1,len)"..."; \
                 if ($1 == '"$playing_tracknr"') indicator="*"; else indicator=""; \
                 if ($1 < 10) $1=" "$1; \
                     printf "%-"c_nr"s %-"c_a"s %-"c_t"s %d:%02d  %-"c_i"s\n", $1"." indicator, $2, $(NF-2), $(NF-1)%3600/60, $(NF-1)%60, $NF \
