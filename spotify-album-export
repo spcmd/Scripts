@@ -44,7 +44,7 @@
 limit="50" # use the max
 
 # Album list saved to this file
-file_albumlist=~/spotify_exported_album_list
+file_albumlist=~/album_list
 
 # -----------------
 # --- Functions ---
