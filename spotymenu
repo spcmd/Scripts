@@ -39,7 +39,7 @@ use_search_history="yes"
 
 # Selected album id saved to this file
 # This way we can quickly access the id for the tracklist command
-file_saved_album_id=/tmp/spotymenu_saved_album_id
+file_saved_album_id=$dir_spotymenu/.spotymenu_saved_album_id
 
 # Artist and Album separator in the displayed list
 # Don't use regex chars as a separator!
@@ -96,14 +96,20 @@ confirm_quit="yes"
 api_limit=50
 
 #==================================
+# Applying dmenu style settings
+#==================================
+
+DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
+DMENU_DELETE="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_delete_bg -sf $selected_delete_fg"
+
+#==================================
 # Dependency check
 #==================================
 
 if [[ ! -x /bin/jq ]]; then
     err_msg="Error: can't find 'jq'. Make sure you have it installed! https://stedolan.github.io/jq/"
-    echo -e "$err_msg"
-    notify-send "$err_msg"
-    exit
+    echo "$err_msg" | $DMENU
+    exit 1
 fi
 
 #==================================
@@ -211,10 +217,6 @@ search_default() {
     album_id=$(echo "$results_list" | awk -F' | ' '{print $NF}')
     track_id=$(echo "$results_list" | awk -F' | ' '{print $(NF-2)}')
 
-    #DEBUG
-    #echo "album_id: $album_id"
-    #echo "track_id: $track_id"
-
     if [[ ! -z $track_id ]] && [[ ! -z $album_id ]]; then
         $dbus_stop && $dbus_openuri "string:spotify:track:$track_id"
         echo "$album_id" > $file_saved_album_id
@@ -232,12 +234,7 @@ search_default() {
 # Do the stuff
 #==================================
 
-# 0. dmenu styling
-DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
-DMENU_DELETE="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_delete_bg -sf $selected_delete_fg"
-
-# 1. Pipe album list to dmenu
-
+# Pipe the album list to dmenu
 if [[ ! -f $file_albumlist ]]; then
     echo "Error: can't find $file_albumlist" | $DMENU
 else
@@ -261,20 +258,18 @@ else
 fi
 
 # --- Search ---
+
 # search for: album
 if [[ $input = /album* ]] || [[ $input =~ ^(\/b .+$) ]]; then
-        search_album
-    # search for: artist
-elif [[ $input = /artist* ]] || [[ $input =~ ^(\/a .+$) ]]; then
-        search_artist
-    # search for artist and/or track
-elif [[ $input = /* ]]; then
-        search_default
+    search_album
 
-    # -- DEBUG ---
-    #echo -e "This was a search for: \033[0;33m$query\033[0m"
-    #echo -e "type: \033[0;33m$type\033[0m"
-    #echo -e "spotify_uri: \033[0;33m$spotify_uri\033[0m"
+# search for: artist
+elif [[ $input = /artist* ]] || [[ $input =~ ^(\/a .+$) ]]; then
+    search_artist
+
+# search for artist and/or track
+elif [[ $input = /* ]]; then
+    search_default
 
 # --- Show the search history ---
 elif [[ $input = ":?" ]]; then
@@ -312,6 +307,9 @@ elif [[ $input = :playlist ]] || [[ $input = :p ]]; then
         if [[ -z $playlist ]]; then
             exit
         else
+            # Not playing saved album, so remove the saved album_id first
+            rm $file_saved_album_id
+            # Open the playlist in Spotify
             $dbus_openuri "string:$playlist_uri"
             if [[ $awm_switch = "yes" ]]; then
                 awm_switch_to_tag
@@ -412,16 +410,16 @@ elif [[ $input = :t* ]] || [[ $input = $playing_track_prefix* ]]; then
             -v c_a=$(($max_width_artist+$tl_separator_whitespace)) \
             -v c_t=$(($max_width_title+$tl_separator_whitespace)) \
             -v c_i=4 \
-            'BEGIN{ \
-                printf "%-1s%-"c_nr"s %-"c_a"s %-"c_t"s %-"c_d"s  %-"c_i"s%-1s\n", \
-                pfx ptf"\n"sep_line"\n",\
-                "Nr.","Artist","Title","Time","ID","\n"sep_line \
-            } \
-            { \
-                $(NF-1)=$(NF-1)/1000; \
-                if ($1 == '"$playing_tracknr"') indicator="*"; else indicator=""; \
-                if ($1 < 10) $1=" "$1; \
-                    printf "%-"c_nr"s %-"c_a"s %-"c_t"s %d:%02d  %-"c_i"s\n", $1"." indicator, $2, $(NF-2), $(NF-1)%3600/60, $(NF-1)%60, $NF \
+            'BEGIN{
+                printf "%-1s%-"c_nr"s %-"c_a"s %-"c_t"s %-"c_d"s  %-"c_i"s%-1s\n",
+                pfx ptf"\n"sep_line"\n",
+                "Nr.","Artist","Title","Time","ID","\n"sep_line
+            }
+            {
+                $(NF-1)=$(NF-1)/1000;
+                if ($1 == '"$playing_tracknr"') indicator="*"; else indicator="";
+                if ($1 < 10) $1=" "$1;
+                    printf "%-"c_nr"s %-"c_a"s %-"c_t"s %d:%02d  %-"c_i"s\n", $1"." indicator, $2, $(NF-2), $(NF-1)%3600/60, $(NF-1)%60, $NF
             }' FS=\| \
                 | $DMENU)
 
@@ -545,10 +543,5 @@ else
         # Saved selected album's id to a file, this way we can quickly get the 'album_id' when using the :tracklist command.
         echo "$album_id" > $file_saved_album_id
 
-        # -- DEBUG ---
-        #echo -e "input/album: \033[0;33m$input\033[0m"
-        #echo -e "get_album: \033[0;33m$get_album\033[0m"
-        #echo -e "album_id: \033[0;33m$album_id\033[0m"
-        #echo -e "track_uri: \033[0;33m$track_uri\033[0m"
     fi
 fi
