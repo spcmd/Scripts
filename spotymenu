@@ -21,9 +21,21 @@ CONFIG_etc="/etc/spotymenu/spotymenurc"
 CONFIG_home="$HOME/.config/spotymenu/spotymenurc"
 
 if [[ -f $CONFIG_home ]]; then
+
     source $CONFIG_home
+
+    # applying spotymenu styles
+    DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
+    DMENU_DELETE="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_delete_bg -sf $selected_delete_fg"
+
 elif [[ -f $CONFIG_etc ]]; then
+
     source $CONFIG_etc
+
+    # applying spotymenu styles
+    DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
+    DMENU_DELETE="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_delete_bg -sf $selected_delete_fg"
+
 else
     err_msg="spotymenu\nError: can't find any configuration file.\nThe config file has to be: '$CONFIG_home' and/or '$CONFIG_etc'"
     echo -e "$err_msg"
