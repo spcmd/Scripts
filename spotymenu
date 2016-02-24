@@ -432,6 +432,8 @@ elif [[ $input = :fav* ]] || [[ $input = :f ]]; then
     track_uri=$(echo "$get_track" | awk '{print $NF}')
 
     if [[ ! -z $get_track ]]; then
+        # Not playing saved album, so remove the saved album_id first
+        rm $file_saved_album_id
         $dbus_stop && $dbus_openuri "string:$track_uri"
     else
         exit
