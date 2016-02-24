@@ -11,96 +11,24 @@
 #           http://spcmd.github.io
 #           https://github.com/spcmd
 #           https://gist.github.com/spcmd
-#
-#
+
 
 #==================================
-# Configurable Options
+# Load the config
 #==================================
 
-# Dir where spotymenu stores its config and lists
-dir_spotymenu=$HOME/spotymenu
+CONFIG_etc="/etc/spotymenu/spotymenurc"
+CONFIG_home="$HOME/.config/spotymenu/spotymenurc"
 
-# Dir that contains the cached tracklists
-dir_tracklist_cache=$dir_spotymenu/tracklist_cache
-
-# File that contains the album list
-file_albumlist=$dir_spotymenu/album_list
-
-# File that contains the list of playlists
-file_playlists=$dir_spotymenu/playlists
-
-# Default file where the favorites saved to
-file_favorite_tracks=$dir_spotymenu/favorite_tracks
-
-# Search history
-file_search_history=$dir_spotymenu/search_history
-use_search_history="yes"
-
-# Selected album id saved to this file
-# This way we can quickly access the id for the tracklist command
-file_saved_album_id=$dir_spotymenu/.spotymenu_saved_album_id
-
-# Artist and Album separator in the displayed list
-# Don't use regex chars as a separator!
-separator=" - "
-
-# Colors
-font="monospace-10"
-list_size="20"
-normal_bg="#181818"
-normal_fg="#ccc"
-selected_bg="#1DB954"
-selected_fg="#181818"
-selected_delete_bg="#c30000"
-selected_delete_fg="#ffffff"
-
-# Show currently playing track info at the top of the list
-# you can hit ENTER on it and it will show the album's tracklist
-show_playing_track="yes"
-
-# Playing track prefix string and separator line
-playing_track_prefix=">>> Playing: "
-playing_track_separator="-"
-
-# Autoplay selected album (local album list), yes or no/empty
-autoplay_album="yes"
-
-# Use tracklist cache:
-# save tracklists to local files (for cache) and load tracklists from them
-# Strongly recommended! Spotify's API gives too many 'Error 502' on requests
-# If you don't get a tracklist loaded, try again a bit later
-use_tracklist_cache="yes"
-
-# Extra whitespace for seperating Artist and Title in the tracklist
-tl_separator_whitespace=1
-
-# Separator line character (for tracklist and the above the album list):
-# use a single character
-sep_line_char="-"
-
-# Separator line's width = number or characters
-# depends on screen resolution and the font size
-# for reference: 170 is for 768 px wide screen and monospace-10 font
-sep_line_width=170
-
-# For Awesome WM: switch to spotify's tag after selecting or searching
-awm_switch="no" # yes or no/empty
-awm_screen="1"
-awm_tag="4"
-
-# Confirm quit OR quit without warning?
-confirm_quit="yes"
-
-# API limit: results from the Spotify API (currently the max. number can be 50)
-api_limit=50
-
-#==================================
-# Applying dmenu style settings
-#==================================
-
-DMENU="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_bg -sf $selected_fg"
-DMENU_DELETE="dmenu -i -l $list_size -fn $font -nb $normal_bg -nf $normal_fg -sb $selected_delete_bg -sf $selected_delete_fg"
+if [[ -f $CONFIG_home ]]; then
+    source $CONFIG_home
+elif [[ -f $CONFIG_etc ]]; then
+    source $CONFIG_etc
+else
+    err_msg="spotymenu\nError: can't find any configuration file.\nThe config file has to be: '$CONFIG_home' and/or '$CONFIG_etc'"
+    echo -e "$err_msg"
+    echo -e "$err_msg" | dmenu -l 5
+fi
 
 #==================================
 # Dependency check
@@ -328,20 +256,26 @@ elif [[ $input = :quit ]] || [[ $input = :q ]]; then
 
 # --- Detailed Info about the played album/song ---
 elif [[ $input = :info ]] || [[ $input = :i ]]; then
+
+    # Get the album's id
+    track_id=$(echo "$playing_trackid" | awk -F':' '{print $3}')
+    playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/tracks/$track_id" | jq -r '.album.id')
+
     infolist=$(echo -e "\
      Information:  (press Enter to copy the entry to the clipboard)\n\
      ==============================================================\n\
      Artist: $playing_artist\n\
       Title: $playing_title\n\
       Album: $playing_album\n\
+   Album_ID: $playing_albumid\n\
       Track: $playing_tracknr\n\
      Length: $playing_min_sec\n\
-         ID: $playing_trackid\n\
+   Track_ID: $track_id\n\
       Cover: $playing_arturl\n\
      ==============================================================\
      " | $DMENU)
 
-    echo "$infolist" | awk '{$1="";gsub(/^[ \t]+/, "");print $0}' | xsel -b
+    echo "$infolist" | awk '{$1="";gsub(/^[ \t]+/, "");printf "%s ", $0}' | xsel -b
 
 # --- Add current album to the album list ---
 elif [[ $input = :add ]] || [[ $input = :a ]]; then
@@ -350,10 +284,18 @@ elif [[ $input = :add ]] || [[ $input = :a ]]; then
     playing_albumid=$(curl -s -X GET "https://api.spotify.com/v1/tracks/$id" | jq -r '.album.id')
 
     if [[ ! -z $playing_albumid ]]; then
-        add_answer=$(echo -e "Add '$playing_artist - $playing_album ($playing_albumid)' to the albumlist?\nyes\nno" | $DMENU)
-        [[ $add_answer = "yes" ]] && echo "$playing_albumartist|$playing_album|$playing_albumid" >> $file_albumlist\
-           && echo -e "Done:\n'$playing_album' added to the album list\n" | $DMENU \
-           || exit
+
+        # Check whether the album is already saved
+        check_id=$(grep "$playing_albumid" $file_albumlist)
+        if [[ ! -z $check_id ]]; then
+            echo "This album has already been added to the album list!" | $DMENU
+        else
+            add_answer=$(echo -e "Add '$playing_artist - $playing_album ($playing_albumid)' to the albumlist?\nyes\nno" | $DMENU)
+            [[ $add_answer = "yes" ]] && echo "$playing_albumartist|$playing_album|$playing_albumid" >> $file_albumlist\
+               && echo -e "Done:\n'$playing_album' added to the album list\n" | $DMENU \
+               || exit
+        fi
+
     else
         exit
     fi
@@ -458,8 +400,14 @@ elif [[ $input = :del* ]] || [[ $input = :d ]]; then
 # --- Favorite tracks: ADD ---
 elif [[ $input = :fadd ]] || [[ $input = :fa ]]; then
 
-    echo "$playing_artist|$playing_title|$playing_album|$playing_min_sec|$playing_trackid" >> $file_favorite_tracks &&\
-    echo -e "Done:\n'$playing_artist - $playing_title' added to the favorites.\n" | $DMENU
+    # Check whether the track is saved to favorites
+    check_uri=$(grep "$playing_trackid" $file_favorite_tracks)
+    if [[ ! -z $check_uri ]]; then
+            echo "This track has already been added to the favorites!" | $DMENU
+        else
+            echo "$playing_artist|$playing_title|$playing_album|$playing_min_sec|$playing_trackid" >> $file_favorite_tracks &&\
+            echo -e "Done:\n'$playing_artist - $playing_title' added to the favorites.\n" | $DMENU
+    fi
 
 # --- Favorite tracks: DELETE ---
 elif [[ $input = :fd* ]]; then
