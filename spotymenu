@@ -476,12 +476,12 @@ elif [[ $input = :help ]] || [[ $input = :h ]]; then
 # --- Load the album list ---
 else
 
-    # Transform the custom separator format to the default pipe delimeted format (like in the file_albumlist)
+    # Transform the custom separator format to the default pipe delimited format (like in the file_albumlist)
     get_album=$(echo "$input" | awk -v sep="$separator"  'BEGIN{FS=sep; OFS=sep} {$1="";sub(sep,"");gsub(/^[ \t]+/, ""); print}')
 
     # Get the Album ID
     # Use string match (index) instead of regex because the album names can contain special regex characters.
-    # Also the list uses pipes as delimeters (and the pipe is a special char in regex).
+    # Also the list uses pipes as delimiters (and the pipe is a special char in regex).
     album_id=$(awk -F '|' '$(NF-1)=="'"$get_album"'" {print $NF}' $file_albumlist)
 
 
