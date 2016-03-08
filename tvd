@@ -20,7 +20,7 @@
 # main url
 url="http://tvmusor.aweben.hu"
 
-highlight_color="0;35" # highlight color for the date/time
+highlight_color="0;33" # highlight color for the date/time
 use_gap="yes" # yes OR no/empty
 show_night_only="yes" # yes OR no/empty
 
