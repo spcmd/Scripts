@@ -1,43 +1,37 @@
 #!/bin/bash
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
 #
-#                                      _
-#         ___ _ __   ___ _ __ ___   __| |
-#        / __| '_ \ / __| '_ ` _ \ / _` |
-#        \__ | |_) | (__| | | | | | (_| |
-#        |___| .__/ \___|_| |_| |_|\__,_|
-#             |_|
+# hblock is a simple bash script which allows
+# you to block domains easily by using the /etc/hosts file
+# hblock also allows you to download (and update) several hosts
+# files and build a single hosts file of them.
 #
-#                    hblock
-#               Created by: spcmd
-#           http://spcmd.github.io
-#           https://github.com/spcmd
-#           https://gist.github.com/spcmd
+# You can download hosts files from: http://hosts-file.net/?s=Download
+# hblock can use only plain text hosts files!
 #
+# You can get/install a hosts file by the following command:
+#     hblock -g <url-to-plain-text-hosts-file>
+# Example:
+#     hblock -g http://hosts-file.net/ad_servers.txt
 #
+# You can update all of the hosts files which reside in the $DIR_LISTS directory
+# with the the following command:
+#     hblock -u
+# If any of these files gets updated, you need to rebuild the /etc/hosts
+# file with the following command:
+#     hblock -b
+# For further information, use the help:
+#     hblock -h
 #
-#   hblock is a simple bash script which allows
-#   you to block domains easily by using the /etc/hosts file
-#   hblock also allows you to download (and update) several hosts
-#   files and build a single hosts file of them.
-#
-#   You can download hosts files from: http://hosts-file.net/?s=Download
-#   hblock can use only plain text hosts files!
-#
-#   You can get/install a hosts file by the following command:
-#       hblock -g <url-to-plain-text-hosts-file>
-#   Example:
-#       hblock -g http://hosts-file.net/ad_servers.txt
-#
-#   You can update all of the hosts files which reside in the $DIR_LISTS directory
-#   with the the following command:
-#       hblock -u
-#   If any of these files gets updated, you need to rebuild the /etc/hosts
-#   file with the following command:
-#       hblock -b
-#   For further information, use the help:
-#       hblock -h
-#
-#   Dependencies: wget
+# Dependencies: wget
 
 # Configuration
 DIR_CONFIG=$HOME/.config/hblock

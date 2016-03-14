@@ -1,18 +1,14 @@
 #!/bin/bash
-#                                      _
-#         ___ _ __   ___ _ __ ___   __| |
-#        / __| '_ \ / __| '_ ` _ \ / _` |
-#        \__ | |_) | (__| | | | | | (_| |
-#        |___| .__/ \___|_| |_| |_|\__,_|
-#             |_|
-#
-#               ranger-dotstow.sh 
-#               Created by: spcmd
-#           http://spcmd.github.io
-#           https://github.com/spcmd
-#           https://gist.github.com/spcmd
-#
-#
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
+
 # Stow dotfiles from ranger
 # Setup & Usage: 
 #   1) Put this script somewhere in your $PATH
