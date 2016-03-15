@@ -1,0 +1,69 @@
+#!/bin/bash
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
+
+# create snippets and copy them to the clipboard by usign dmenu
+
+# Dir that contains the .snippet files
+dir_snippets=$HOME/.dsnippet
+
+# Set dmenu style
+[[ -f $HOME/.dmenurc ]] && . $HOME/.dmenurc || DMENU='dmenu -i -l 10'
+
+# create a new snippet
+new() {
+    if [[ ! -z $filename ]]; then
+        snippet_file=$dir_snippets/$filename.snippet
+        echo "# Space separated taglist here..." > $snippet_file
+        $EDITOR $snippet_file
+    else
+        echo "Error: no filename was given"
+    fi
+}
+
+# usage/help
+usage() {
+cat << EOF
+
+Usage: $(basename $0) [option] <filename>
+
+Options:
+            new, add            create a new snippet and open in \$EDITOR
+            help, -h, --help    this help
+
+EOF
+}
+
+# main
+main(){
+
+    # List all the snippets from the dir
+    list_snippets=$(for files in $dir_snippets/*.snippet; do awk -F'/' 'NR==1{gsub(/\/.*\//,"",FILENAME);print FILENAME"   [tags: "$0"]"}' "$files"; done)
+
+    # Select a snippet from dmenu
+    get_snippet=$(echo "$list_snippets" | $DMENU)
+
+    if [[ ! -z $get_snippet ]]; then
+        # Get only the filename of the snippet
+        selected_snippet=$(echo "$get_snippet" | awk '{print $1}')
+
+        # Copy the content of the snippet file, except the first line, which is a tagline
+        awk '{if(NR>1)print}' $dir_snippets/$selected_snippet | xsel -b
+    else
+        exit
+    fi
+}
+
+# run
+case $1 in
+    new|add) filename=$2 && new;;
+    -h|--help|help) usage;;
+    *) main;;
+esac
