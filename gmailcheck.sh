@@ -99,7 +99,7 @@ if [[ $full_newmail_count -ge "1" ]]; then
     echo "mail_widget:set_markup(\"Mail: <span background='#C90303' color='#ffffff'> ${full_newmail_count}new </span> \")" | awesome-client
 else
     #echo 'mail_widget:set_text(" 0 ")' | awesome-client
-    echo 'mail_widget:set_text("Mail: 0")' | awesome-client
+    echo "mail_widget:set_text(\"Mail: 0\")" | awesome-client
 fi
 
 # Log: append entries--------------------------------------
