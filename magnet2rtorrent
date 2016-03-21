@@ -1,0 +1,26 @@
+#!/bin/bash
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
+
+# Load torrent magnet links to rtorrent quickly
+
+window_name="rtorrent"
+
+# Copy URL to the clipboard
+echo "$1" | xsel -b
+sleep 0.1
+# Activate rtorrent window
+xdotool search --name $window_name windowactivate
+sleep 0.1
+# Hit 'Enter' key (load url)
+xdotool key Return
+sleep 0.1
+# Paste url from the clipboard
+xdotool key Ctrl+Shift+v
