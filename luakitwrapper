@@ -1,0 +1,127 @@
+#!/bin/bash
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
+
+# A luakit wrapper script
+
+# Features:
+#   - Export noscript database to plain text (.sql) file for dotfiles syncing. (Source: https://gopherproxy.meulie.net/uninformativ.de/0/twitpher/2012-05/2012-05-16.txt).
+#   - Export cookie database to plain text (.sql) file for inspection and clean up.
+#   - Clean up all cookies (except those that are in the keepcookies_list) when luakit starts.
+#     This way domains can be allowed or whitelisted (temporary) and their cookies will be deleted if the
+#     domains aren't on the keepcookies_list.
+#   - Clean cookies manually.
+#   - List cookies from cookies.db.
+#   - List noscript disabled sites (where javascript and/or plugins are enabled)
+#   - Export boomarks to plain text file (requires: https://github.com/Ambrevar/luakit/blob/bookmark-scripts/extras/bookmarks_sqlite_to_plain.lua).
+
+# ---------------------------------------------------------
+# NOSCRIPT
+# ---------------------------------------------------------
+
+# noscript files (db = binary database, sql = plain text)
+noscript_sql=~/.local/share/luakit/noscript.sql
+noscript_db=~/.local/share/luakit/noscript.db
+
+# ---------------------------------------------------------
+# COOKIES
+# ---------------------------------------------------------
+
+# cookie files (db = binary database, sql = plain text)
+cookies_sql=~/.local/share/luakit/cookies.sql
+cookies_db=~/.local/share/luakit/cookies.db
+
+# keep cookies from these domains
+keepcookies_list=~/.config/luakit/keepcookies.list
+
+# cleaned, plain text sql file, this will be injected when luakit starts
+# contains only cookies from the 'keepcookies_list'
+cleaned_cookies_sql=/tmp/cleaned_cookies_sql
+
+# keep these cookies and remove every other
+# read from file, join lines, separate domains with a '|' and remove '*' wildcard
+kc=$(sed -e :a -e '$!N; s/\n/|/; ta' -e 's/\*//g' $keepcookies_list)
+
+# print the new sql command but delete the 'INSERT INTO' lines which contain domains that are not whitelisted
+awk '{if($0 ~ /^INSERT/ && !/'"$kc"'/) next; print $0}' $cookies_sql > $cleaned_cookies_sql
+
+# ---------------------------------------------------------
+# BOOKMARKS
+# ---------------------------------------------------------
+
+bookmarks_exporter=~/.config/luakit/bookmarks_sqlite_to_plain.lua
+bookmarks_db=~/.local/share/luakit/bookmarks.db
+
+# will be exported to this file:
+bookmarks_plaintext=~/.local/share/luakit/bookmarks.txt
+
+# ---------------------------------------------------------
+# End of configurable options
+# ---------------------------------------------------------
+
+
+clean_cookies() {
+    : > $cookies_db
+    sqlite3 $cookies_db < $cleaned_cookies_sql
+    echo "==> Done: luakit cookies have been cleaned."
+}
+
+list_cookies() {
+    sqlite3 $cookies_db '.dump moz_cookies' | awk '/VALUES/{print $4}'
+}
+
+list_noscript_disbaled() {
+    sqlite3 $noscript_db '.dump by_domain' | awk -F',' 'BEGIN{print "Javascript/Plugins are allowed on these domains\n(first number=javascript; second number=plugins; 1=enabled; 0=disabled)\n"} /VALUES/{gsub("\047","");gsub(");","");print $2" "$3" " $4}'
+}
+
+export_bookmarks() {
+    echo "==> Exporting bookmarks to: $bookmarks_plaintext"
+    luakit -c $bookmarks_exporter $bookmarks_db $bookmarks_plaintext
+}
+
+main() {
+    if ! pgrep '^luakit$'
+    then
+        : > $noscript_db
+        sqlite3 $noscript_db < $noscript_sql
+        : > $cookies_db
+        sqlite3 $cookies_db < $cleaned_cookies_sql
+        luakit "$@"
+        sqlite3 $noscript_db '.dump by_domain' > $noscript_sql
+        sqlite3 $cookies_db '.dump moz_cookies' > $cookies_sql
+    else
+        luakit "$@"
+    fi
+}
+
+usage() {
+cat << EOF
+Usage: $name [option]
+Without an option, it starts luakit and cleans up the cookies automatically.
+
+Options:
+            -c, --clean-cookies             Clean cookies manually.
+            -l, --list-cookies              List cookies from database.
+            -n, --list-noscript-disabled    List domains where noscipt is disabled (javascript and/or plugins are enabled)
+            -x, --export-bookmarks          Export bookmarks to a plain text file.
+            -h, --help                      This help page.
+
+EOF
+}
+
+# do the stuff
+case $1 in
+    -c|--clean-cookies) clean_cookies;;
+    -l|--list-cookies) list_cookies;;
+    -n|--list-noscript-disabled) list_noscript_disbaled;;
+    -x|--export-bookmarks) export_bookmarks;;
+    -h|--help) name=$(basename $0) && usage;;
+    *) main;;
+esac
