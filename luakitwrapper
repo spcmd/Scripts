@@ -75,13 +75,14 @@ bookmarks_plaintext=$luakit_data_dir/bookmarks.txt
 # ---------------------------------------------------------
 
 history_db=$luakit_data_dir/history.db
-remove_older_than_days=30   #remove entries older than x days
+remove_older_than_days=30   # remove entries older than x days
+auto_clear_history="no"     # auto clear history every time when luakit starts
 
 # ---------------------------------------------------------
 # End of configurable options
 # ---------------------------------------------------------
 
-clean_history() {
+clear_history() {
     #if no 'days' parameter was given then use the default
     if [[ -z $days ]]; then
         days=$remove_older_than_days
@@ -92,10 +93,10 @@ clean_history() {
     echo "==> Backup created: $history_db.bak"
 }
 
-clean_cookies() {
+clear_cookies() {
     : > $cookies_db
     sqlite3 $cookies_db < $cleaned_cookies_sql
-    echo "==> Done: luakit cookies have been cleaned."
+    echo "==> Done: luakit cookies have been deleted."
 }
 
 list_cookies() {
@@ -114,13 +115,22 @@ export_bookmarks() {
 main() {
     if ! pgrep '^luakit$'
     then
+
         : > $noscript_db
         sqlite3 $noscript_db < $noscript_sql
+
         : > $cookies_db
         sqlite3 $cookies_db < $cleaned_cookies_sql
+
+        if [[ $auto_clear_history = "yes" ]]; then
+            clear_history;
+        fi
+
         luakit "$@"
+
         sqlite3 $noscript_db '.dump by_domain' > $noscript_sql
         sqlite3 $cookies_db '.dump moz_cookies' > $cookies_sql
+
     else
         luakit "$@"
     fi
@@ -132,8 +142,8 @@ Usage: $name [option]
 Without an option, it starts luakit and cleans up the cookies automatically.
 
 Options:
-            -cc, --clean-cookies            Clean cookies manually.
-            -ch, --clean-history [day(s)]   Clean history entries older than x day(s).
+            -cc, --clear-cookies            Clear cookies manually.
+            -ch, --clear-history [day(s)]   Clear history entries older than x day(s).
             -lc, --list-cookies             List cookies from database.
             -ln, --list-noscript-disabled   List domains where noscipt is disabled (javascript and/or plugins are enabled)
             -xb, --export-bookmarks         Export bookmarks to a plain text file.
@@ -144,8 +154,8 @@ EOF
 
 # do the stuff
 case $1 in
-    -cc|--clean-cookies) clean_cookies;;
-    -ch|--clean-history) days=$2 clean_history;;
+    -cc|--clear-cookies) clear_cookies;;
+    -ch|--clear-history) days=$2 clear_history;;
     -lc|--list-cookies) list_cookies;;
     -ln|--list-noscript-disabled) list_noscript_disbaled;;
     -xb|--export-bookmarks) export_bookmarks;;
