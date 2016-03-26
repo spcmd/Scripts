@@ -17,29 +17,37 @@
 #   - Clean up all cookies (except those that are in the keepcookies_list) when luakit starts.
 #     This way domains can be allowed or whitelisted (temporary) and their cookies will be deleted if the
 #     domains aren't on the keepcookies_list.
-#   - Clean cookies manually.
+#   - Clear cookies manually.
 #   - List cookies from cookies.db.
 #   - List noscript disabled sites (where javascript and/or plugins are enabled)
 #   - Export boomarks to plain text file (requires: https://github.com/Ambrevar/luakit/blob/bookmark-scripts/extras/bookmarks_sqlite_to_plain.lua).
+#   - Clear history (older than x days).
+
+# ---------------------------------------------------------
+# luakit dirs
+# ---------------------------------------------------------
+
+luakit_config_dir=~/.config/luakit
+luakit_data_dir=~/.local/share/luakit
 
 # ---------------------------------------------------------
 # NOSCRIPT
 # ---------------------------------------------------------
 
 # noscript files (db = binary database, sql = plain text)
-noscript_sql=~/.local/share/luakit/noscript.sql
-noscript_db=~/.local/share/luakit/noscript.db
+noscript_sql=$luakit_data_dir/noscript.sql
+noscript_db=$luakit_data_dir/noscript.db
 
 # ---------------------------------------------------------
 # COOKIES
 # ---------------------------------------------------------
 
 # cookie files (db = binary database, sql = plain text)
-cookies_sql=~/.local/share/luakit/cookies.sql
-cookies_db=~/.local/share/luakit/cookies.db
+cookies_sql=$luakit_data_dir/cookies.sql
+cookies_db=$luakit_data_dir/cookies.db
 
 # keep cookies from these domains
-keepcookies_list=~/.config/luakit/keepcookies.list
+keepcookies_list=$luakit_config_dir/keepcookies.list
 
 # cleaned, plain text sql file, this will be injected when luakit starts
 # contains only cookies from the 'keepcookies_list'
@@ -56,16 +64,33 @@ awk '{if($0 ~ /^INSERT/ && !/'"$kc"'/) next; print $0}' $cookies_sql > $cleaned_
 # BOOKMARKS
 # ---------------------------------------------------------
 
-bookmarks_exporter=~/.config/luakit/bookmarks_sqlite_to_plain.lua
-bookmarks_db=~/.local/share/luakit/bookmarks.db
+bookmarks_exporter=$luakit_config_dir/bookmarks_sqlite_to_plain.lua
+bookmarks_db=$luakit_data_dir/bookmarks.db
 
 # will be exported to this file:
-bookmarks_plaintext=~/.local/share/luakit/bookmarks.txt
+bookmarks_plaintext=$luakit_data_dir/bookmarks.txt
+
+# ---------------------------------------------------------
+# HISTORY
+# ---------------------------------------------------------
+
+history_db=$luakit_data_dir/history.db
+remove_older_than_days=30   #remove entries older than x days
 
 # ---------------------------------------------------------
 # End of configurable options
 # ---------------------------------------------------------
 
+clean_history() {
+    #if no 'days' parameter was given then use the default
+    if [[ -z $days ]]; then
+        days=$remove_older_than_days
+    fi
+    cp $history_db $history_db.bak
+    sqlite3 $history_db "DELETE FROM history WHERE last_visit <= strftime('%s',date('now', '-$days days'))"
+    echo "==> Done: history entries older than $days day(s) have been deleted."
+    echo "==> Backup created: $history_db.bak"
+}
 
 clean_cookies() {
     : > $cookies_db
@@ -107,10 +132,11 @@ Usage: $name [option]
 Without an option, it starts luakit and cleans up the cookies automatically.
 
 Options:
-            -c, --clean-cookies             Clean cookies manually.
-            -l, --list-cookies              List cookies from database.
-            -n, --list-noscript-disabled    List domains where noscipt is disabled (javascript and/or plugins are enabled)
-            -x, --export-bookmarks          Export bookmarks to a plain text file.
+            -cc, --clean-cookies            Clean cookies manually.
+            -ch, --clean-history [day(s)]   Clean history entries older than x day(s).
+            -lc, --list-cookies             List cookies from database.
+            -ln, --list-noscript-disabled   List domains where noscipt is disabled (javascript and/or plugins are enabled)
+            -xb, --export-bookmarks         Export bookmarks to a plain text file.
             -h, --help                      This help page.
 
 EOF
@@ -118,10 +144,11 @@ EOF
 
 # do the stuff
 case $1 in
-    -c|--clean-cookies) clean_cookies;;
-    -l|--list-cookies) list_cookies;;
-    -n|--list-noscript-disabled) list_noscript_disbaled;;
-    -x|--export-bookmarks) export_bookmarks;;
+    -cc|--clean-cookies) clean_cookies;;
+    -ch|--clean-history) days=$2 clean_history;;
+    -lc|--list-cookies) list_cookies;;
+    -ln|--list-noscript-disabled) list_noscript_disbaled;;
+    -xb|--export-bookmarks) export_bookmarks;;
     -h|--help) name=$(basename $0) && usage;;
     *) main;;
 esac
