@@ -14,9 +14,9 @@
 # Features:
 #   - Export noscript database to plain text (.sql) file for dotfiles syncing. (Source: https://gopherproxy.meulie.net/uninformativ.de/0/twitpher/2012-05/2012-05-16.txt).
 #   - Export cookie database to plain text (.sql) file for inspection and clean up.
-#   - Clean up all cookies (except those that are in the keepcookies_list) when luakit starts.
+#   - Clean up all cookies (except those that are in the cookie_keeper_list) when luakit starts.
 #     This way domains can be allowed or whitelisted (temporary) and their cookies will be deleted if the
-#     domains aren't on the keepcookies_list.
+#     domains aren't on the cookie_keeper_list.
 #   - Clear cookies manually.
 #   - List cookies from cookies.db.
 #   - List noscript disabled sites (where javascript and/or plugins are enabled)
@@ -47,15 +47,15 @@ cookies_sql=$luakit_data_dir/cookies.sql
 cookies_db=$luakit_data_dir/cookies.db
 
 # keep cookies from these domains
-keepcookies_list=$luakit_config_dir/keepcookies.list
+cookie_keeper_list=$luakit_config_dir/cookie_keeper.list
 
 # cleaned, plain text sql file, this will be injected when luakit starts
-# contains only cookies from the 'keepcookies_list'
+# contains only cookies from the 'cookie_keeper_list'
 cleaned_cookies_sql=/tmp/cleaned_cookies_sql
 
 # keep these cookies and remove every other
 # read from file, join lines, separate domains with a '|' and remove '*' wildcard
-kc=$(sed -e :a -e '$!N; s/\n/|/; ta' -e 's/\*//g' $keepcookies_list)
+kc=$(sed -e :a -e '$!N; s/\n/|/; ta' -e 's/\*//g' $cookie_keeper_list)
 
 # print the new sql command but delete the 'INSERT INTO' lines which contain domains that are not whitelisted
 awk '{if($0 ~ /^INSERT/ && !/'"$kc"'/) next; print $0}' $cookies_sql > $cleaned_cookies_sql
