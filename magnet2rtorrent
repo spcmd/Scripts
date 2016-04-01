@@ -11,16 +11,25 @@
 
 # Load torrent magnet links to rtorrent quickly
 
-window_name="rtorrent"
+name="rTorrent"
 
 # Copy URL to the clipboard
 echo "$1" | xsel -b
 sleep 0.1
+
+# Search for rTorrent
+search=$(xdotool search --classname $name)
+
 # Activate rtorrent window
-xdotool search --name $window_name windowactivate
-sleep 0.1
-# Hit 'Enter' key (load url)
-xdotool key Return
-sleep 0.1
-# Paste url from the clipboard
-xdotool key Ctrl+Shift+v
+if [[ ! -z $search ]]; then
+    xdotool windowactivate $search
+    sleep 0.1
+    # Hit 'Enter' key (load url)
+    xdotool key Return
+    sleep 0.1
+    # Paste url from the clipboard
+    xdotool key Ctrl+Shift+v
+else
+    notify-send "$(basename $0)" "Error: No such window: $name. Is rTorrent running?"
+    exit 1
+fi
