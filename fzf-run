@@ -17,7 +17,7 @@ cli_apps_list=~/.dmenu_term_apps
 [[ $FZF_DEFAULT_OPTS ]] && fzf_opts=$FZF_DEFAULT_OPTS || fzf_opts="--exact --reverse"
 
 # get the list
-result=$(sort -u $cli_apps_list | fzf $fzf_opts "$@")
+result=$(sort -u $cli_apps_list | fzf $fzf_opts --prompt 'fzf-run> '"$@")
 
 # get only the first string (application name) and run
 exec $(echo $result | cut -f1 -d ' ')
