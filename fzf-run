@@ -1,0 +1,23 @@
+#!/bin/bash
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
+
+# Run cli-only applications from a predefined list with fzf
+# Requires: fzf (https://github.com/junegunn/fzf)
+
+cli_apps_list=~/.dmenu_term_apps
+
+[[ $FZF_DEFAULT_OPTS ]] && fzf_opts=$FZF_DEFAULT_OPTS || fzf_opts="--exact --reverse"
+
+# get the list
+result=$(sort -u $cli_apps_list | fzf $fzf_opts "$@")
+
+# get only the first string (application name) and run
+exec $(echo $result | cut -f1 -d ' ')
