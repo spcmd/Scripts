@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Source: https://github.com/michael-lazar/rtv/issues/78#issuecomment-125507472
+# Open different type or URLs with different applications
+# (original script: https://github.com/michael-lazar/rtv/issues/78#issuecomment-125507472)
 
 ARGS=$(getopt -o n -- "$@")
 PRE=""
@@ -23,34 +24,70 @@ while true; do
         ;;
     esac
 done
-# let xdg do url scheme handling where appropriate, this script handles special cases (youtube, imgur, etc.)
 
-DEFAULT="luakit"
+
+# This checks the display, so can be used in both TTY and X
 VIDEO="url2mpv.sh"
-IMAGE="feh -."
-GIF="mpv --loop=inf"
 
-url=$1
-case $url in
-    http*://*youtube.com/watch?*|http*://youtu.be/watch?*)
-        ${PRE}${VIDEO} "$url"
-        ;;
-    *.jpg*|*.png*)
-        ${PRE}${IMAGE} "$url"
-        ;;
-    *.gif*)
-        ${PRE}${GIF} "${url/.gifv/.webm}"
-        ;;
-    *imgur.com/a/*|*imgur.com/gallery/*)
-        ${DEFAULT} "$url"
-        ;;
-    *imgur.com/*)
-        $0$q $(curl -s "$url" | sed -n 's/^.*<link rel="image_src"\s\+href="\([^"]\+\)".*$/\1/p')
-        ;;
-    mailto:*)
-        ${PRE}urxvtc -e mutt1 -F ~/.mutt/account.1.muttrc -- "${url}"
-        ;;
-    *)
-        ${DEFAULT} "$url"
-        ;;
-esac
+# Check whether the $DISPLAY is set (running on X) or not
+if [[ $DISPLAY ]]; then
+    DEFAULT="luakit"
+    IMAGE="feh -."
+    GIF="mpv --loop=inf"
+
+    url=$1
+    case $url in
+        http*://*youtube.com/watch?*|http*://youtu.be/watch?*)
+            ${PRE}${VIDEO} "$url"
+            ;;
+        *.jpg*|*.png*)
+            ${PRE}${IMAGE} "$url"
+            ;;
+        *.gif*)
+            ${PRE}${GIF} "${url/.gifv/.webm}"
+            ;;
+        *imgur.com/a/*|*imgur.com/gallery/*)
+            ${DEFAULT} "$url"
+            ;;
+        *imgur.com/*)
+            $0$q $(curl -s "$url" | sed -n 's/^.*<link rel="image_src"\s\+href="\([^"]\+\)".*$/\1/p')
+            ;;
+        mailto:*)
+            ${PRE}urxvtc -e mutt1 -F ~/.mutt/account.1.muttrc -- "${url}"
+            ;;
+        *)
+            ${DEFAULT} "$url"
+            ;;
+    esac
+
+# no display, using tty
+else
+    DEFAULT="w3m"
+    GIF="mpv -vo=drm --loop=inf"
+
+    url=$1
+    case $url in
+        http*://*youtube.com/watch?*|http*://youtu.be/watch?*)
+            ${PRE}${VIDEO} "$url" && clear # clear the output of mpv (quiet and msg-level options didn't work well)
+            ;;
+        *.jpg*|*.png*)
+            # FIM cannot open URLs directly, so we need to download the image(s) first
+            DIR_FIM_TMP=/tmp/fim
+            wget -q -N -P $DIR_FIM_TMP "$url" && fim ${DIR_FIM_TMP}/${url##*/} > /dev/null 2>&1
+            ;;
+        *.gif*)
+            ${PRE}${GIF} "${url/.gifv/.webm}"
+            ;;
+        *imgur.com/a/*|*imgur.com/gallery/*)
+            ${DEFAULT} "$url"
+            ;;
+        *imgur.com/*)
+            $0$q $(curl -s "$url" | sed -n 's/^.*<link rel="image_src"\s\+href="\([^"]\+\)".*$/\1/p')
+            ;;
+        *)
+            ${DEFAULT} "$url"
+            ;;
+    esac
+
+fi
+
