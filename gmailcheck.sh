@@ -91,8 +91,9 @@ echo -e "$full_newmail_count" > $file_newmail_count
 #echo -e "MAIL_1_COUNT: $mail_1_newmail_count"
 #echo -e "MAIL_2_COUNT: $mail_2_newmail_count"
 
-# For awesomeWM --------------------------------------
+# Window Manager panel/widget --------------------------------------
 
+# awesome WM
 if [[ $(pgrep awesome) ]]; then
 
     # Pipe newmail count into awesome-client (refresh mail widget)
@@ -102,6 +103,17 @@ if [[ $(pgrep awesome) ]]; then
     else
         #echo 'mail_widget:set_text(" 0 ")' | awesome-client
         echo "mail_widget:set_text(\"Mail: 0\")" | awesome-client
+    fi
+
+fi
+
+# bspwm
+if [[ $(pgrep bspwm) ]]; then
+
+    if [[ $full_newmail_count -gt 0 ]]; then
+       echo "M%{F#ff3b3b}${full_newmail_count}new" > "$PANEL_FIFO"
+    else
+        echo "M0" > "$PANEL_FIFO"
     fi
 
 fi
