@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #                               _
 #  ___ _ __   ___ _ __ ___   __| |
 # / __| '_ \ / __| '_ ` _ \ / _` |
@@ -12,14 +12,14 @@
 # create snippets and copy them to the clipboard by usign dmenu
 
 # Dir that contains the .snippet files
-dir_snippets=$HOME/.dsnippet
+dir_snippets="$HOME/.dsnippet"
 
 # Set dmenu style
-[[ -f $HOME/.dmenurc ]] && . $HOME/.dmenurc || DMENU='dmenu -i -l 10'
+[ -f "$HOME/.dmenurc" ] && . "$HOME/.dmenurc" || DMENU='dmenu -i -l 10'
 
 # create a new snippet
 new() {
-    if [[ ! -z $filename ]]; then
+    if [ ! -z "$filename" ]; then
         snippet_file=$dir_snippets/$filename.snippet
         echo "# Space separated taglist here..." > $snippet_file
         $EDITOR $snippet_file
@@ -50,7 +50,7 @@ main(){
     # Select a snippet from dmenu
     get_snippet=$(echo "$list_snippets" | $DMENU)
 
-    if [[ ! -z $get_snippet ]]; then
+    if [ ! -z "$get_snippet" ]; then
         # Get only the filename of the snippet
         selected_snippet=$(echo "$get_snippet" | awk '{print $1}')
 
@@ -62,7 +62,7 @@ main(){
 }
 
 # run
-case $1 in
+case "$1" in
     new|add) filename=$2 && new;;
     -h|--help|help) usage;;
     *) main;;

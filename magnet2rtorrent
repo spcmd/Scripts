@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #                               _
 #  ___ _ __   ___ _ __ ___   __| |
 # / __| '_ \ / __| '_ ` _ \ / _` |
@@ -9,25 +9,15 @@
 # http://spcmd.github.io
 # https://github.com/spcmd
 
-# Load torrent magnet links to rtorrent quickly
+# Quickly load torrent magnet links to rtorrent
 
 name="rTorrent"
-
-# Copy URL to the clipboard
-echo "$1" | xsel -b
-sleep 0.1
-
-# Search for rTorrent
 search=$(xdotool search --classname $name)
 
-# Activate rtorrent window
-if [[ ! -z $search ]]; then
-    xdotool windowactivate $search
-    sleep 0.1
-    # Hit 'Enter' key (load url)
-    xdotool key Return
-    sleep 0.1
-    # Paste url from the clipboard
+echo "$1" | xsel -b && \
+if [ ! -z "$search" ]; then
+    xdotool windowactivate $search && \
+    xdotool key Return && \
     xdotool key Ctrl+Shift+v
 else
     notify-send "$(basename $0)" "Error: No such window: $name. Is rTorrent running?"

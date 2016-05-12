@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/sh
 
 #   Copyright (c) 1998  Martin Schulze <joey@debian.org>
 #   Slightly modified by Luis Francisco Gonzalez <luisgh@debian.org>
@@ -41,7 +41,7 @@ XTERM=/usr/bin/urxvtc
 ###########################################################################
 # Change bellow this at your own risk
 ###########################################################################
-function getprg()
+getprg()
 {
     local ele tag prog
 
@@ -113,7 +113,3 @@ if [ -n "$prg" ]; then
     $prg "$url"
    fi
 fi
-
-
-
-

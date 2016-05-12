@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #                               _
 #  ___ _ __   ___ _ __ ___   __| |
 # / __| '_ \ / __| '_ ` _ \ / _` |
@@ -14,7 +14,7 @@
 
 cli_apps_list=~/.dmenu_term_apps
 
-[[ $FZF_DEFAULT_OPTS ]] && fzf_opts=$FZF_DEFAULT_OPTS || fzf_opts="--exact --reverse"
+[ "$FZF_DEFAULT_OPTS" ] && fzf_opts="$FZF_DEFAULT_OPTS" || fzf_opts="--exact --reverse"
 
 # get the list
 result=$(sort -u $cli_apps_list | fzf $fzf_opts --prompt 'fzf-run> '"$@")

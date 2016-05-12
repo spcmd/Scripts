@@ -9,17 +9,8 @@
 # http://spcmd.github.io
 # https://github.com/spcmd
 
-# Gmail checker script primarily for mutt
 
-# Settings-----------------------------------------
-
-# User/Pass for the accounts
-# For security reasons, reading the username from the account files and the passwords from a gpg file
-user1=$(cat $HOME/.mutt/account.1.muttrc | grep -m 1 "imap_user" | awk '{gsub("\"", "", $4); print $4}')
-pw1=$(gpg2 -dq $HOME/.pwds-mutt.gpg | awk 'NR==1 {print $4}')
-
-user2=$(cat $HOME/.mutt/account.2.muttrc | grep -m 1 "imap_user" | awk '{gsub("\"", "", $4); print $4}')
-pw2=$(gpg2 -dq $HOME/.pwds-mutt.gpg | awk 'NR==2 {print $4}')
+# General Settings-----------------------------------------
 
 # Google atom feed url
 atom_feed_url="https://mail.google.com/mail/feed/atom"
@@ -33,6 +24,29 @@ mail_error_log=$HOME/.mutt/mail_error.log
 # Log the time and date of the check
 checkdatetime=$(date +%Y.%m.%d\ %H:%M:%S)
 
+# Log file & OFF switch -----------------------------------------
+
+if [[ ! -e $mail_check_log ]]; then
+    touch $mail_check_log
+    echo "Mail check log created at: $checkdatetime" > $mail_check_log
+fi
+
+# Don't check mail if switched OFF
+if [[ -e /tmp/gmailcheck_off ]]; then
+    sed -i "1s/^/Mail check turned OFF, exited at: $checkdatetime\n/" $mail_check_log
+    exit
+fi
+
+# Account Settings-----------------------------------------
+
+# User/Pass for the accounts
+# For security reasons, reading the username from the account files and the passwords from a gpg file
+user1=$(cat $HOME/.mutt/account.1.muttrc | grep -m 1 "imap_user" | awk '{gsub("\"", "", $4); print $4}')
+pw1=$(gpg2 -dq $HOME/.pwds-mutt.gpg | awk 'NR==1 {print $4}')
+
+user2=$(cat $HOME/.mutt/account.2.muttrc | grep -m 1 "imap_user" | awk '{gsub("\"", "", $4); print $4}')
+pw2=$(gpg2 -dq $HOME/.pwds-mutt.gpg | awk 'NR==2 {print $4}')
+
 # Account 1 feed-----------------------------------------
 mail_1_feed=$(curl -u $user1:$pw1 --silent $atom_feed_url)
 mail_1_account=$(echo "$mail_1_feed" | grep -o -E "[^[:space:]]+@gmail\.com" | head -n 1)
@@ -44,13 +58,6 @@ mail_2_feed=$(curl -u $user2:$pw2 --silent $atom_feed_url)
 mail_2_account=$(echo "$mail_2_feed" | grep -o -E "[^[:space:]]+@gmail\.com" | head -n 1)
 mail_2_newmail_list=$(echo "$mail_2_feed" | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' | sed -n "s/<title>\(.*\)<\/title.*issued>\(.*\)<\/issued.*name>\(.*\)<\/name>.*/\2 - \3 - \1/p" | awk '{ gsub("T", " ", $1); gsub("Z", "", $1); print $0 }')
 mail_2_newmail_count=$(echo "$mail_2_feed" | grep -E -o '<fullcount>[0-9]{1,3}</fullcount>' | sed -e 's/<fullcount>//;s/<\/fullcount>//')
-
-# Create Log File-----------------------------------------
-
-if [[ ! -f $mail_check_log ]]; then
-    touch $mail_check_log
-    echo "Mail check log created at: $checkdatetime" > $mail_check_log
-fi
 
 # Check mails--------------------------------------
 

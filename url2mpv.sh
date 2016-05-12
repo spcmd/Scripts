@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #                               _
 #  ___ _ __   ___ _ __ ___   __| |
 # / __| '_ \ / __| '_ ` _ \ / _` |
@@ -14,9 +14,9 @@
 SPOTIFY_AUTO_STOP="yes"
 
 # Stop Spotify when the video starts (if the option was set to "yes")
-if [[ $SPOTIFY_AUTO_STOP = "yes" ]]; then
+if [ "$SPOTIFY_AUTO_STOP" = "yes" ]; then
     dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Stop
 fi
 
 #Play the video
-[[ $DISPLAY ]] && urxvtc -e mpv "$1" || mpv -vo=drm "$1"
+[ "$DISPLAY" ] && urxvtc -e mpv "$1" || mpv -vo=drm "$1"

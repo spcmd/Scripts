@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #                               _
 #  ___ _ __   ___ _ __ ___   __| |
 # / __| '_ \ / __| '_ ` _ \ / _` |
@@ -10,20 +10,20 @@
 # https://github.com/spcmd
 
 # Stow dotfiles from ranger
-# Setup & Usage: 
+# Setup & Usage:
 #   1) Put this script somewhere in your $PATH
 #   2) Configure dotfiles_dir variable below.
 #   3) Add the stow alias to ranger's rc.conf:
 #       alias stow shell ranger-dotstow.sh %s
 #   4) Go to your dotfiles_dir in ranger,
-#      select a directory or multiple directories 
+#      select a directory or multiple directories
 #      (in the root of the dotfiles_dir)
 #      then run the stow command on it.
 
-dotfiles_dir=$HOME/dotfiles
+dotfiles_dir=~/dotfiles
 
 for dirs in $@; do
-    if [[ -d $dotfiles_dir/$dirs ]]; then
+    if [ -d "$dotfiles_dir/$dirs" ]; then
         stow $dirs
         notify-send "ranger-dotstow" "OK! $dotfiles_dir/$dirs symlinked."
     else

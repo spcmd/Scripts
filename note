@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #                               _
 #  ___ _ __   ___ _ __ ___   __| |
 # / __| '_ \ / __| '_ ` _ \ / _` |
@@ -49,7 +49,7 @@ case "$1" in
     -R|--remove-all)
                     echo "Remove ALL notes? Are you sure [yY/nN]"
                     read answer
-                    if [[ $answer == "y" ]] || [[ $answer == "Y" ]]; then
+                    if [ "$answer" = "y" -o "$answer" = "Y" ]; then
                         cp $FILE_NOTES /tmp
                         rm $FILE_NOTES
                         echo "$FILE_NOTES has been deleted. Now you can find a copy in /tmp (for emergency) until the next reboot. Delete manually if you wish."
@@ -66,8 +66,8 @@ case "$1" in
     -h|--help) usage;;
     -a|--add) echo "$(date +"[%Y-%b-%d %H:%M]") $2" >> $FILE_NOTES ;;
     -*) echo "Invalid option. Use '$0 -h' for help." ;;
-    *) 
-        if [[ -z $1 ]]; then
+    *)
+        if [ -z "$1" ]; then
             tac $FILE_NOTES | colorize_output
         else
             echo "$(date +"[%Y-%b-%d %H:%M]") $@" >> $FILE_NOTES

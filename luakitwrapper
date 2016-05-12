@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #                               _
 #  ___ _ __   ___ _ __ ___   __| |
 # / __| '_ \ / __| '_ ` _ \ / _` |
@@ -84,7 +84,7 @@ auto_clear_history="no"     # auto clear history every time when luakit starts
 
 clear_history() {
     #if no 'days' parameter was given then use the default
-    if [[ -z $days ]]; then
+    if [ -z "$days" ]; then
         days=$remove_older_than_days
     fi
     cp $history_db $history_db.bak
@@ -122,7 +122,7 @@ main() {
         : > $cookies_db
         sqlite3 $cookies_db < $cleaned_cookies_sql
 
-        if [[ $auto_clear_history = "yes" ]]; then
+        if [ "$auto_clear_history" = "yes" ]; then
             clear_history;
         fi
 

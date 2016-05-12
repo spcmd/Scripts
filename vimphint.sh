@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #                               _
 #  ___ _ __   ___ _ __ ___   __| |
 # / __| '_ \ / __| '_ ` _ \ / _` |
@@ -23,10 +23,10 @@ cat << 'EOF' > $help_file
   <meta charset="utf-8">
   <title>vimphint.sh > html</title>
   <style>
-    body { 
+    body {
         background: #fff;
         color: #000;
-        font-family:monospace; 
+        font-family:monospace;
         font-size:13px;
     }
     span.command { color:red; }

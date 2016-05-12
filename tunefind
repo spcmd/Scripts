@@ -9,7 +9,8 @@
 # http://spcmd.github.io
 # https://github.com/spcmd
 
-# search for tv episode songs in tunefind.com
+# Search for tv episode songs in tunefind.com
+# Requires: lynx browser
 
 show=$(echo "$1" | sed 's/ /-/g;s/./\L&/g')
 season="$2"
