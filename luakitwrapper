@@ -126,13 +126,13 @@ main() {
             clear_history;
         fi
 
-        luakit "$@"
+        luakit
 
         sqlite3 $noscript_db '.dump by_domain' > $noscript_sql
         sqlite3 $cookies_db '.dump moz_cookies' > $cookies_sql
 
     else
-        luakit "$@"
+        luakit
     fi
 }
 
@@ -159,6 +159,6 @@ case $1 in
     -lc|--list-cookies) list_cookies;;
     -ln|--list-noscript-disabled) list_noscript_disbaled;;
     -xb|--export-bookmarks) export_bookmarks;;
-    -h|--help) name=$(basename $0) && usage;;
+    -h|--help) name=$(basename "$0") && usage;;
     *) main;;
 esac

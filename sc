@@ -49,7 +49,7 @@ case $1 in
         echo "$meta_ArtURL"
         ;;
     -C|--viewcover|--viewart)
-        feh $($0 -c) &
+        feh "$($0 -c)" &
         ;;
     -d|--trackid)
         echo "$meta_TrackID"
@@ -101,7 +101,7 @@ case $1 in
             echo "==> Error: you must specify a 'type' and a search 'query'."
             echo "    Use quotes around the query string!"
             echo "    Usage example:"
-            echo "      $(basename $0) $1 artist \"clint mansell\""
+            echo "      $(basename "$0") $1 artist \"clint mansell\""
         fi
         ;;
     -t|--title)
@@ -115,7 +115,7 @@ case $1 in
         ;;
     -h|--help|*)
         sc_ascii;
-        echo -e "Usage: $(basename $0) [option] [type]\n"
+        echo -e "Usage: $(basename "$0") [option] [type]\n"
         echo "Options:"
         echo "   -a, --artist                     Print the artist"
         echo "   -A, --albumartist                Print the album artist"

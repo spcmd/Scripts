@@ -19,4 +19,4 @@ if [ "$SPOTIFY_AUTO_STOP" = "yes" ]; then
 fi
 
 #Play the video
-[ "$DISPLAY" ] && urxvtc -e mpv "$1" || mpv -vo=drm "$1"
+( [ "$DISPLAY" ] && urxvtc -e mpv "$1" ) || mpv -vo=drm "$1"

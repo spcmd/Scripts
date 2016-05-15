@@ -31,14 +31,14 @@ fg_color_codeblock="#000"
 #----------------------------------------------------------------------
 
 # Set dmenu style
-[ -f ~/.dmenurc ] && .  ~/.dmenurc || DMENU='dmenu -i -l 10'
+[ -f ~/.dmenurc ] && . ~/.dmenurc || DMENU='dmenu -i -l 10'
 
 # create a new file
 new() {
     if [ ! -z "$filename" ]; then
         file=$dir_tuxwiki/$filename.md
-        echo "# Space separated taglist here..." > $file
-        $EDITOR $file
+        echo "# Space separated taglist here..." > "$file"
+        $EDITOR "$file"
     else
         echo "Error: no filename was given"
     fi
@@ -48,7 +48,7 @@ new() {
 usage() {
 cat << EOF
 
-Usage: $(basename $0) [option] <filename>
+Usage: $(basename "$0") [option] <filename>
 
 Options:
             new, add            create a new file and open in \$EDITOR
@@ -74,13 +74,13 @@ main(){
         output_file=$dir_html_output/$selected_file.html
 
         # Start creating html file
-        echo "<html><head><meta http-equiv='Content-Type' content='text/html;charset=utf-8' /><title>$selected_file</title><style>a {font-size:12px;} code {display:block;font:12px monospace;background:$bg_color_code;color:$fg_color_code;padding:4px} pre code {font:12px monospace;background:$bg_color_codeblock;color:$fg_color_codeblock;padding:8px;border:1px dashed #B0CADA} h1:first-child{text-align:right;font-size:14px;padding:2px;border-bottom:1px solid #666;} h1:first-child:before{content:"tags: ";}ol {padding-left:22px;}</style></head><body>" > $output_file
+        echo "<html><head><meta http-equiv='Content-Type' content='text/html;charset=utf-8' /><title>$selected_file</title><style>a {font-size:12px;} code {display:block;font:12px monospace;background:$bg_color_code;color:$fg_color_code;padding:4px} pre code {font:12px monospace;background:$bg_color_codeblock;color:$fg_color_codeblock;padding:8px;border:1px dashed #B0CADA} h1:first-child{text-align:right;font-size:14px;padding:2px;border-bottom:1px solid #666;} h1:first-child:before{content:"tags: ";}ol {padding-left:22px;}</style></head><body>" > "$output_file"
 
         # Convert the markdown file to html
-        cmark $input_file -t html >> $output_file
+        cmark "$input_file" -t html >> "$output_file"
 
         # Finish creating html file
-        echo "</body></html>" >> $output_file
+        echo "</body></html>" >> "$output_file"
 
         # Open in the browser
         $cmd_browser "$output_file"

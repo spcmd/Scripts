@@ -21,8 +21,8 @@ dir_snippets="$HOME/.dsnippet"
 new() {
     if [ ! -z "$filename" ]; then
         snippet_file=$dir_snippets/$filename.snippet
-        echo "# Space separated taglist here..." > $snippet_file
-        $EDITOR $snippet_file
+        echo "# Space separated taglist here..." > "$snippet_file"
+        $EDITOR "$snippet_file"
     else
         echo "Error: no filename was given"
     fi
@@ -32,7 +32,7 @@ new() {
 usage() {
 cat << EOF
 
-Usage: $(basename $0) [option] <filename>
+Usage: $(basename "$0") [option] <filename>
 
 Options:
             new, add            create a new snippet and open in \$EDITOR
@@ -55,7 +55,7 @@ main(){
         selected_snippet=$(echo "$get_snippet" | awk '{print $1}')
 
         # Copy the content of the snippet file, except the first line, which is a tagline
-        awk '{if(NR>1)print}' $dir_snippets/$selected_snippet | xsel -b
+        awk '{if(NR>1)print}' "$dir_snippets/$selected_snippet" | xsel -b
     else
         exit
     fi

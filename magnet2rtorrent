@@ -16,10 +16,10 @@ search=$(xdotool search --classname $name)
 
 echo "$1" | xsel -b && \
 if [ ! -z "$search" ]; then
-    xdotool windowactivate $search && \
+    xdotool windowactivate "$search" && \
     xdotool key Return && \
     xdotool key Ctrl+Shift+v
 else
-    notify-send "$(basename $0)" "Error: No such window: $name. Is rTorrent running?"
+    notify-send "$(basename "$0")" "Error: No such window: $name. Is rTorrent running?"
     exit 1
 fi

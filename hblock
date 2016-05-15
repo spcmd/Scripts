@@ -52,13 +52,13 @@ if [[ ! -d $DIR_CONFIG ]]; then
     echo "Done."
     echo "==> Creating backup of the original hosts file from /etc"
     cp /etc/hosts "$DIR_CONFIG"/etc-hosts.backup
-    echo "Done. /etc/hosts saved to "$DIR_CONFIG"/etc-hosts.backup"
+    echo "Done. /etc/hosts saved to $DIR_CONFIG/etc-hosts.backup"
     echo -e "\n"
 fi
 
 add() {
     echo "127.0.0.1 $domain" | sudo tee --append /etc/hosts > /dev/null #silent
-    echo "127.0.0.1 $domain" >> $FILE_MY_BLOCKS
+    echo "127.0.0.1 $domain" >> "$FILE_MY_BLOCKS"
     echo "==> Added: $domain"
 }
 
@@ -77,7 +77,7 @@ build() {
     echo "==> Building /etc/hosts"
     cat "$DIR_LISTS"/* | sudo tee /etc/hosts > /dev/null #silent
     sudo sed -i 's/\r$//' /etc/hosts
-    echo "$(date +'%Y-%b-%d %H:%M')" > $FILE_LASTBUILD
+    date +'%Y-%b-%d %H:%M' > "$FILE_LASTBUILD"
     echo "Done."
 }
 
@@ -101,7 +101,7 @@ get_predefined(){
 
 delete_hostsfile() {
     if [[ ! -e "$DIR_LISTS/$hostsfile" ]]; then
-        echo "==> Error: Invalid name, no such hosts list filename. Use '$(basename $0) -f' to list hosts lists."
+        echo "==> Error: Invalid name, no such hosts list filename. Use '$(basename "$0") -f' to list hosts lists."
     else
         echo "==> Removing hosts file: $hostsfile"
         sed -i "/\<$hostsfile\>/d" "$FILE_HOSTSLIST_URLS"
@@ -145,7 +145,7 @@ case "$1" in
 
     --remove|-r) domain=$2 remove;;
 
-    --list|-l) cat $FILE_MY_BLOCKS;;
+    --list|-l) cat "$FILE_MY_BLOCKS";;
 
     --check|-c) keyword=$2 check;;
 
@@ -165,7 +165,7 @@ case "$1" in
 
     --help|-h|*)
     if [[ -f $FILE_LASTBUILD ]]; then
-        echo "hblock: /etc/hosts last build date: $(cat $FILE_LASTBUILD)"
+        echo "hblock: /etc/hosts last build date: $(cat "$FILE_LASTBUILD")"
     fi
     usage
     ;;

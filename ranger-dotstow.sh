@@ -22,9 +22,9 @@
 
 dotfiles_dir=~/dotfiles
 
-for dirs in $@; do
+for dirs in "$@"; do
     if [ -d "$dotfiles_dir/$dirs" ]; then
-        stow $dirs
+        stow "$dirs"
         notify-send "ranger-dotstow" "OK! $dotfiles_dir/$dirs symlinked."
     else
         notify-send "ranger-dotstow" "FAILED! No such directory: $dotfiles_dir/$dirs"

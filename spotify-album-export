@@ -88,7 +88,7 @@ add_by_uri(){
 }
 
 usage() {
-    echo -e "Usage: $(basename $0) [option] [token]\n"
+    echo -e "Usage: $(basename "$0") [option] [token]\n"
     echo "Without an option it will export the first 50 albums. This is the maximum that Spotify allows on a single run."
     echo -e "Use 50 as an offset on the second run, then 100 on the third run an so on...\n"
     echo "You can get your personal token here (after logged in to spotify):"

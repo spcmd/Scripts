@@ -13,10 +13,10 @@ fi
 # ranger -name ranger
 APP=$(
 	IFS=:
-	if stest -dqr -n "$cache" $PATH; then
-		stest -flx $PATH | sort -u | tee "$cache" | dmenu "$@"
+	if stest -dqr -n "$cache" "$PATH"; then
+		stest -flx "$PATH" | sort -u | tee "$cache" | dmenu "$@"
 	else
 		dmenu "$@" < "$cache"
 	fi
 )
-grep -q -w "$APP" ~/.dmenu_term_apps && xresource_name=$(awk '/'"$APP"'/{print $2" "$3}' ~/.dmenu_term_apps) && urxvtc $xresource_name -e $APP || echo $APP | ${SHELL:-"/bin/sh"} &
+( grep -q -w "$APP" ~/.dmenu_term_apps && xresource_name=$(awk '/'"$APP"'/{print $2" "$3}' ~/.dmenu_term_apps) && urxvtc "$xresource_name" -e "$APP" ) || echo "$APP" | ${SHELL:-"/bin/sh"} &

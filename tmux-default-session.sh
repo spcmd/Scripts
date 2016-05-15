@@ -11,10 +11,10 @@
 
 # Start a default tmux session with predefined windows/programs
 
-tmux new-session -d -c $HOME
-tmux new-window -n files -c $HOME ranger
-tmux new-window -n torr -c $HOME rtorrent
-tmux new-window -n mus -c $HOME
-tmux new-window -n mail -c $HOME
-tmux new-window -n news -c $HOME newsbeuter
+tmux new-session -d -c "$HOME"
+tmux new-window -n files -c "$HOME" ranger
+tmux new-window -n torr -c "$HOME" rtorrent
+tmux new-window -n mus -c "$HOME"
+tmux new-window -n mail -c "$HOME"
+tmux new-window -n news -c "$HOME" newsbeuter
 tmux -2 attach-session -d

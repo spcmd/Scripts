@@ -32,6 +32,6 @@ dump() {
 
 # Do the stuff
 case $1 in
-    -h) echo "Usage: $(basename $0) [show title] [season number] [episode number]" ;;
+    -h) echo "Usage: $(basename "$0") [show title] [season number] [episode number]" ;;
     *) [[ ! -z $1 ]] && [[ ! -z $2 ]] && [[ ! -z $3 ]] && dump | less -ri || echo "Error: You need to specify a show tilte, a season number and an episode number!"
 esac

@@ -18,7 +18,7 @@ colorize_output(){ sed -r -e "s/\[.+\]/\o033[0;32m&\o033[0m/" -e "s/@.+/\o033[0;
 usage() {
 cat <<EOF
 Notes file's location: $FILE_NOTES
-Usage: $(basename $0) [option] <note|keyword>
+Usage: $(basename "$0") [option] <note|keyword>
 
 Options:
 <note>                                      Add a note (you can add a note without using the -a or the --add option)
@@ -44,33 +44,33 @@ EOF
 
 case "$1" in
 
-    -b|--backup) cp $FILE_NOTES $FILE_NOTES.bak ;;
-    -r|--remove) sed -i "/$2/d" $FILE_NOTES ;;
+    -b|--backup) cp "$FILE_NOTES" "${FILE_NOTES}.bak" ;;
+    -r|--remove) sed -i "/$2/d" "$FILE_NOTES" ;;
     -R|--remove-all)
                     echo "Remove ALL notes? Are you sure [yY/nN]"
-                    read answer
-                    if [ "$answer" = "y" -o "$answer" = "Y" ]; then
-                        cp $FILE_NOTES /tmp
-                        rm $FILE_NOTES
+                    read -r answer
+                    if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+                        cp "$FILE_NOTES" /tmp
+                        rm "$FILE_NOTES"
                         echo "$FILE_NOTES has been deleted. Now you can find a copy in /tmp (for emergency) until the next reboot. Delete manually if you wish."
                     else
                         echo "Cancelled."
                     fi
                     ;;
 
-    -l|--list) tac $FILE_NOTES | colorize_output ;;
-    -L|--list-oldest-first) cat $FILE_NOTES | colorize_output ;;
-    -s|--search) grep -i "$2" $FILE_NOTES | colorize_output ;;
-    -S|--search-case-sensitive) grep "$2" $FILE_NOTES | colorize_output;;
-    -e|--edit) $EDITOR $FILE_NOTES ;;
+    -l|--list) tac "$FILE_NOTES" | colorize_output ;;
+    -L|--list-oldest-first) cat "$FILE_NOTES" | colorize_output ;;
+    -s|--search) grep -i "$2" "$FILE_NOTES" | colorize_output ;;
+    -S|--search-case-sensitive) grep "$2" "$FILE_NOTES" | colorize_output;;
+    -e|--edit) $EDITOR "$FILE_NOTES" ;;
     -h|--help) usage;;
-    -a|--add) echo "$(date +"[%Y-%b-%d %H:%M]") $2" >> $FILE_NOTES ;;
+    -a|--add) echo "$(date +"[%Y-%b-%d %H:%M]") $2" >> "$FILE_NOTES" ;;
     -*) echo "Invalid option. Use '$0 -h' for help." ;;
     *)
         if [ -z "$1" ]; then
-            tac $FILE_NOTES | colorize_output
+            tac "$FILE_NOTES" | colorize_output
         else
-            echo "$(date +"[%Y-%b-%d %H:%M]") $@" >> $FILE_NOTES
+            echo "$(date +"[%Y-%b-%d %H:%M]")" "$@" >> "$FILE_NOTES"
         fi
         ;;
 esac

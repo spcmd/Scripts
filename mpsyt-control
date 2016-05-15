@@ -33,4 +33,4 @@ bus=$(dbus-send --session           \
   grep 'org.mpris.MediaPlayer2.mps-youtube' |
   head -n 1)
 
-dbus-send --type=method_call --dest=$bus /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.$func
+dbus-send --type=method_call --dest="$bus" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.$func
