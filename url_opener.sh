@@ -37,7 +37,7 @@ if [[ $DISPLAY ]]; then
 
     url=$1
     case $url in
-        http*://*youtube.com/watch?*|http*://youtu.be/watch?*)
+        http*://*youtube.com/watch?*|http*://youtu.be/watch?*|http*://youtu.be/*)
             ${PRE}${VIDEO} "$url"
             ;;
         *.jpg*|*.png*)
