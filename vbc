@@ -21,7 +21,7 @@ normal=$(tput sgr0)
 
 # Functions
 usage() {
-    echo "Usage: $(basename "$0") [option] [VM name] "
+    echo "Usage: $(basename "$0") [option] [VM name] [additional parameters]"
     echo "Options:"
 	echo "          list                Lists all VMs."
 	echo "          running             Lists running VMs."
@@ -35,6 +35,8 @@ usage() {
 	echo "          info                Detailed info about VM."
     echo "          delete              Permanently delete a VM."
     echo "          clone               Clone a VM (pass the new WM's name as the last parameter)."
+    echo "          load-iso            Load an .iso file to the Optical Drive (pass the iso file's path as the last parameter)."
+    echo "          unload-iso          Unload the Optical Drive"
     echo "          newtemp             Create a new WM from the TEMPLATE by cloning it (needs and existing template WM with the name TEMPLATE)."
     echo "          -h,--help,help      This help."
 }
@@ -110,6 +112,16 @@ case "$1" in
     newtemp)
         [ ! -n "$2" ] && error
         VBoxManage clonevm TEMPLATE --name "$2" --register
+        ;;
+    load-iso)
+        if [ ! -n "$2" ] || [ ! -n "$3" ]; then
+            error
+        fi
+        VBoxManage storageattach "$2" --storagectl IDE --port 1 --device 0 --type dvddrive --medium "$3"
+        ;;
+    unload-iso)
+        [ ! -n "$2" ] && error
+        VBoxManage storageattach "$2" --storagectl IDE --port 1 --device 0 --type dvddrive --medium "none"
         ;;
     info)
         [ ! -n "$2" ] && error
