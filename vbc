@@ -1,0 +1,121 @@
+#!/bin/sh
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
+
+# A simple VBoxManage wrapper script to control VMs easily
+# Based on: https://github.com/msseufert/vbclm
+# VBoxManage manual: https://www.virtualbox.org/manual/ch08.html
+
+# Colors
+red=$(tput setaf 1)
+green=$(tput setaf 2)
+yellow=$(tput setaf 3)
+normal=$(tput sgr0)
+
+# Functions
+usage() {
+    echo "Usage: $(basename "$0") [option] [VM name] "
+    echo "Options:"
+	echo "          list                Lists all VMs."
+	echo "          running             Lists running VMs."
+    echo "          start               Start a VM (pass \`headless\` after the VM name to start it without a GUI)."
+	echo "          stop                Stop a VM."
+	echo "          pause               Pause a VM."
+	echo "          resume              Resume a VM."
+	echo "          reset               Reset a VM."
+	echo "          savestate           Save a VM."
+	echo "          state, status       ON/OFF status of a VM."
+	echo "          info                Detailed info about VM."
+    echo "          delete              Permanently delete a VM."
+    echo "          clone               Clone a VM (pass the new WM's name as the last parameter)."
+    echo "          newtemp             Create a new WM from the TEMPLATE by cloning it (needs and existing template WM with the name TEMPLATE)."
+    echo "          -h,--help,help      This help."
+}
+
+error(){
+    echo "${red}Error${normal}: No VM name was given."
+    usage
+    exit 1
+}
+
+# Do the stuff
+case "$1" in
+
+    -h|--help|help)
+            usage
+            ;;
+    list)
+        VBoxManage list vms
+        ;;
+    running)
+        VBoxManage list runningvms
+        ;;
+    start)
+        [ ! -n "$2" ] && error
+        if [ "$3" = headless ]; then
+            echo "Starting $2 headless"
+            VBoxManage startvm --type headless "$2"
+        else
+            echo "Starting $2"
+            VBoxManage startvm "$2"
+        fi
+        ;;
+    stop)
+        [ ! -n "$2" ] && error
+        echo "Stopping $2"
+        VBoxManage controlvm "$2" poweroff
+        ;;
+    pause|resume|savestate|reset)
+        [ ! -n "$2" ] && error
+        echo "Requesting $2 to $1"
+        VBoxManage controlvm "$2" "$1"
+        ;;
+    state|status)
+        [ ! -n "$2" ] && error
+        info=$(VBoxManage showvminfo "$2" | awk '/State/{$1="";sub(/ /,"");print}')
+        state=${info%% *}
+        since=${info#* }
+        if [ "$state" = paused ]; then
+            echo "[$2] ${yellow}$state ${normal}$since"
+        elif [ "$state" = running ]; then
+            echo "[$2] ${green}$state ${normal}$since"
+        else
+            echo "[$2] $info"
+        fi
+        ;;
+    delete)
+        [ ! -n "$2" ] && error
+        echo "Delete this VM? [hit 'y' or 'Y' (then Enter) to delete]"
+        read -r key
+        if [ "$key" = y ] || [ "$key" = Y ]; then
+            VBoxManage unregistervm "$2" --delete
+            echo "VM deleted."
+        else
+            echo "Nothing changed."
+        fi
+        ;;
+    clone)
+        if [ ! -n "$2" ] || [ ! -n "$3" ]; then
+            error
+        fi
+        VBoxManage clonevm "$2" --name "$3" --register
+        ;;
+    newtemp)
+        [ ! -n "$2" ] && error
+        VBoxManage clonevm TEMPLATE --name "$2" --register
+        ;;
+    info)
+        [ ! -n "$2" ] && error
+        VBoxManage showvminfo "$2"
+        ;;
+    *)
+        echo "Unknown option: $1"
+        ;;
+esac
