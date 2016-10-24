@@ -1,0 +1,33 @@
+#!/bin/sh
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
+
+# List ebooks from Calibre Library and/or Ebook directory and open them with ebook-viewer
+# Requires: calibre
+
+# Dir that contains the ebooks
+dir_calibre="$HOME/Calibre Library"
+dir_ebook="$HOME/Ebook"
+
+# Set dmenu style
+[ -f "$HOME/.dmenurc" ] && . "$HOME/.dmenurc" || DMENU='dmenu -i -l 10'
+
+# List ebooks
+list_ebooks=$(find "$dir_calibre" -name "*.epub")
+
+# Select ebook from dmenu
+get_ebook=$(echo "$list_ebooks" | $DMENU)
+
+if [ ! -z "$get_ebook" ]; then
+    notify-send "Opening ebook:" "$(echo $get_ebook | awk -F'/' '{print $NF}')"
+    ebook-viewer "$get_ebook"
+else
+    exit
+fi
