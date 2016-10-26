@@ -9,25 +9,28 @@
 # http://spcmd.github.io
 # https://github.com/spcmd
 
-# List ebooks from Calibre Library and/or Ebook directory and open them with ebook-viewer
-# Requires: calibre
+# List ebooks from Calibre Library directory and open them with ebook-viewer or zathura (PDF files)
+# Requires: calibre, zathura
 
-# Dir that contains the ebooks
+# Calibre Library directory
 dir_calibre="$HOME/Calibre Library"
-dir_ebook="$HOME/Ebook"
 
 # Set dmenu style
 [ -f "$HOME/.dmenurc" ] && . "$HOME/.dmenurc" || DMENU='dmenu -i -l 10'
 
 # List ebooks
-list_ebooks=$(find "$dir_calibre" -name "*.epub")
+list_ebooks=$(find "$dir_calibre" -iregex '.*\.\(epub\|pdf\)$')
 
 # Select ebook from dmenu
 get_ebook=$(echo "$list_ebooks" | $DMENU)
 
 if [ ! -z "$get_ebook" ]; then
     notify-send "Opening ebook:" "$(echo $get_ebook | awk -F'/' '{print $NF}')"
-    ebook-viewer "$get_ebook"
+    if [ "${get_ebook##*.}" = "pdf" ]; then
+        zathura "$get_ebook"
+    else
+        ebook-viewer "$get_ebook"
+    fi
 else
     exit
 fi
