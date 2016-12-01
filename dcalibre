@@ -18,8 +18,8 @@ dir_calibre="$HOME/Calibre Library"
 # Set dmenu style
 [ -f "$HOME/.dmenurc" ] && . "$HOME/.dmenurc" || DMENU='dmenu -i -l 10'
 
-# List ebooks
-list_ebooks=$(find "$dir_calibre" -iregex '.*\.\(epub\|pdf\)$')
+# List ebooks sorted (sed out the path; show only the directories and the filenames)
+list_ebooks=$(find "$dir_calibre" -iregex '.*\.\(epub\|pdf\)$'| sed "s#$dir_calibre/##" | sort)
 
 # Select ebook from dmenu
 get_ebook=$(echo "$list_ebooks" | $DMENU)
@@ -27,9 +27,9 @@ get_ebook=$(echo "$list_ebooks" | $DMENU)
 if [ ! -z "$get_ebook" ]; then
     notify-send "Opening ebook:" "$(echo $get_ebook | awk -F'/' '{print $NF}')"
     if [ "${get_ebook##*.}" = "pdf" ]; then
-        zathura "$get_ebook"
+        zathura "$dir_calibre/$get_ebook"
     else
-        ebook-viewer "$get_ebook"
+        ebook-viewer "$dir_calibre/$get_ebook"
     fi
 else
     exit
