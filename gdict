@@ -1,0 +1,129 @@
+#!/bin/bash
+# A translator script with a simple history and a save to file function, using Translate Shell (https://github.com/soimort/translate-shell)
+# Based on: https://github.com/yahmanhu/Scripts/blob/master/gthu
+
+
+# ------------------------------------------------------------------------------
+# Configurable options
+# ------------------------------------------------------------------------------
+# Save history/wordlist to this file
+file_wordlist="$HOME/Documents/kiszotarazott.txt"
+# Auto save wordlist to the file on quit (set to "yes", if you want to enable this)
+autosave_worldlist="yes"
+# ------------------------------------------------------------------------------
+
+
+# Declare functions
+showHist() {
+    echo -e "History\n\nType the number of the word you want to translate. To quit history, type 'q' then hit enter.\n"
+    # Iterate through all variables in the history array...
+    for i in "${!GTHIST[@]}"; do
+        # ... and echo them pairing with their translations
+        echo -e "$i ${GTHIST[$i]} "[${GTHISTFM[$i]}]""
+    done
+}
+
+showHelp() {
+    echo "HELP: Type these and hit Enter:"
+    echo "-----------------------------------------------------------------"
+    echo " c         clear screen"
+    echo " hist      show history"
+    echo " w, x      manually save wordlist to the file (works in history)"
+    echo " q         quit"
+    echo " h         this help"
+    echo "-----------------------------------------------------------------"
+}
+
+saveToFile() {
+    for i in "${!GTHIST[@]}"; do
+        # check whether the word is already added to the file, if not, then add append it to the file (and remove all escapes added by translate-shell, and remove the extra spaces too)
+        grep "${GTHIST[$i]}" $file_wordlist || echo "${GTHIST[$i]} :${GTHISTFM[$i]}" | sed -r 's/\x1b\[[0-9;]*m?//g;' | tr -s " " >> $file_wordlist
+    done
+    clear
+    echo ">> Wordlist saved to: $file_wordlist"
+}
+
+
+# Declare arrays
+declare -a GTHIST
+declare -a GTHISTFM
+
+
+# If script got input arguments then translate them with translate-shell
+if [[ $# -gt 0 ]]; then
+    trans en:hu $@
+# If there isn't any input argument...
+else
+
+echo "Type 'h' and hit Enter for help"
+# ... then start a loop and run the script until terminated
+    while true; do
+
+        # Ask for a phrase (or word) to look for
+        read -p $'Next phrase:> ' phrase
+
+        # If phrase is "c" (abbreviation for clear) script clears the terminal and continues the loop
+        if [[ $phrase == "c" ]]; then
+
+            clear
+            continue
+
+        # If phrase is "q" (abbreviation for exit), script exits the program by breaking the loop
+        elif [[ $phrase == "q" ]]; then
+
+            # if autosave is enabled, save the wordlist to the file
+            if [[ $autosave_worldlist == "yes" ]]; then
+                saveToFile;
+            fi
+            break
+
+        # If phrase is "hist" script clears the terminal and jumps into history
+        elif [[ $phrase == "hist" ]]; then
+            clear
+            showHist;
+
+            # You can select from the list for further translations...
+            read -p $'\nSelect: ' select
+
+            phrase=${GTHIST[$select]}
+
+            # save the current wordlist to a text file
+            if [[ $select == "w" || $select == "x" ]]; then
+
+                saveToFile;
+                continue
+
+            # ... or exit history by typing "exit"
+            elif [[ $select == "q" ]]; then
+
+                clear
+                continue
+
+            fi
+
+        # If phrase is "h" (abbreviation for help), shows the help and continues the loop
+        elif [[ $phrase == "h" ]]; then
+
+            showHelp;
+            continue
+
+        fi
+
+        # Translate given phrase with Translate Shell
+        output=$(trans en:hu "$phrase")
+        echo -e "\n$output\n"
+
+        # Getting the first meaning of the phrase
+        first_meaning=$(echo -e $output | grep -o -E '.*Definitions|.*Translations' | sed "s/$phrase//" | sed "s/\/.*\// /" | sed "s/Definitions//" | sed "s/Translations//")
+
+        # Add phrase to history array. If phrase is already on the list, then do nothing (prevent multiplicating same phrases). Also add the first meaning of the phrase to the list
+        if [[ ${GTHIST[@]} =~ "$phrase" ]]; then
+            :
+        else
+            GTHIST+=("$phrase")
+            GTHISTFM+=("$first_meaning")
+        fi
+
+    # End of loop
+    done
+fi
