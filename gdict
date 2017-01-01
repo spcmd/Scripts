@@ -1,5 +1,5 @@
 #!/bin/bash
-# A translator script with a simple history and a save to file function, using Translate Shell (https://github.com/soimort/translate-shell)
+# A translator script with a simple history and a save to file function (dictionary), using Translate Shell (https://github.com/soimort/translate-shell)
 # Based on: https://github.com/yahmanhu/Scripts/blob/master/gthu
 
 
@@ -10,6 +10,10 @@
 file_wordlist="$HOME/Documents/kiszotarazott.txt"
 # Auto save wordlist to the file on quit (set to "yes", if you want to enable this)
 autosave_worldlist="yes"
+# Separate the original word from the translations with this
+separator=" : "
+# Translate this language to this
+lang="en:hu"
 # ------------------------------------------------------------------------------
 
 
@@ -17,14 +21,14 @@ autosave_worldlist="yes"
 showHist() {
     echo -e "History\n\nType the number of the word you want to translate. To quit history, type 'q' then hit enter.\n"
     # Iterate through all variables in the history array...
-    for i in "${!GTHIST[@]}"; do
+    for i in "${!TWORD[@]}"; do
         # ... and echo them pairing with their translations
-        echo -e "$i ${GTHIST[$i]} "[${GTHISTFM[$i]}]""
+        echo "$i ${TWORD[$i]}${separator}${TRANSLATIONS[$i]}"
     done
 }
 
 showHelp() {
-    echo "HELP: Type these and hit Enter:"
+    echo "HELP: Type one these and hit Enter:"
     echo "-----------------------------------------------------------------"
     echo " c         clear screen"
     echo " hist      show history"
@@ -35,9 +39,9 @@ showHelp() {
 }
 
 saveToFile() {
-    for i in "${!GTHIST[@]}"; do
-        # check whether the word is already added to the file, if not, then add append it to the file (and remove all escapes added by translate-shell, and remove the extra spaces too)
-        grep "${GTHIST[$i]}" $file_wordlist || echo "${GTHIST[$i]} :${GTHISTFM[$i]}" | sed -r 's/\x1b\[[0-9;]*m?//g;' | tr -s " " >> $file_wordlist
+    for i in "${!TWORD[@]}"; do
+        # check whether the word is already added to the file, if not, then add append it to the file
+        grep "${TWORD[$i]}" $file_wordlist || echo "${TWORD[$i]}${separator}${TRANSLATIONS[$i]}" >> $file_wordlist
     done
     clear
     echo ">> Wordlist saved to: $file_wordlist"
@@ -45,13 +49,13 @@ saveToFile() {
 
 
 # Declare arrays
-declare -a GTHIST
-declare -a GTHISTFM
+declare -a TWORD
+declare -a TRANSLATIONS
 
 
 # If script got input arguments then translate them with translate-shell
 if [[ $# -gt 0 ]]; then
-    trans en:hu $@
+    trans $lang $@
 # If there isn't any input argument...
 else
 
@@ -85,7 +89,7 @@ echo "Type 'h' and hit Enter for help"
             # You can select from the list for further translations...
             read -p $'\nSelect: ' select
 
-            phrase=${GTHIST[$select]}
+            phrase=${TWORD[$select]}
 
             # save the current wordlist to a text file
             if [[ $select == "w" || $select == "x" ]]; then
@@ -110,18 +114,20 @@ echo "Type 'h' and hit Enter for help"
         fi
 
         # Translate given phrase with Translate Shell
-        output=$(trans en:hu "$phrase")
+        # +remove some stuff and delete blank lines and leading whitespaces with sed
+        # +get unique words with uniq
+        # +join lines with paste
+        # +add a space after each comma with sed
+        output=$(trans -no-ansi -show-translation-phonetics n  -show-translation-phonetics n -show-languages n --show-original n -show-prompt-message n -show-alternatives n $lang $phrase | sed 's/adjective//;s/noun//;s/verb//;/^$/d;3~2d;s/^[ \t]*//' | uniq | paste -sd ',' | sed 's/,/, /g')
         echo -e "\n$output\n"
 
-        # Getting the first meaning of the phrase
-        first_meaning=$(echo -e $output | grep -o -E '.*Definitions|.*Translations' | sed "s/$phrase//" | sed "s/\/.*\// /" | sed "s/Definitions//" | sed "s/Translations//")
-
-        # Add phrase to history array. If phrase is already on the list, then do nothing (prevent multiplicating same phrases). Also add the first meaning of the phrase to the list
-        if [[ ${GTHIST[@]} =~ "$phrase" ]]; then
+        # Add phrase to history array. If phrase is already on the list, then do nothing (prevent multiplicating same phrases).
+        # Also add the translated words to the array
+        if [[ ${TWORD[@]} =~ "$phrase" ]]; then
             :
         else
-            GTHIST+=("$phrase")
-            GTHISTFM+=("$first_meaning")
+            TWORD+=("$phrase")
+            TRANSLATIONS+=("$output")
         fi
 
     # End of loop
