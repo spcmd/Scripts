@@ -28,7 +28,7 @@ showHist() {
 }
 
 showHelp() {
-    echo "HELP: Type one these and hit Enter:"
+    echo "HELP: Type one of these and hit Enter:"
     echo "-----------------------------------------------------------------"
     echo " c         clear screen"
     echo " hist      show history"
@@ -40,8 +40,8 @@ showHelp() {
 
 saveToFile() {
     for i in "${!TWORD[@]}"; do
-        # check whether the word is already added to the file, if not, then add append it to the file
-        grep "${TWORD[$i]}" $file_wordlist || echo "${TWORD[$i]}${separator}${TRANSLATIONS[$i]}" >> $file_wordlist
+        # check whether the word is already added to the file, if not, then append it to the file
+        grep -q "${TWORD[$i]}" $file_wordlist || echo "${TWORD[$i]}${separator}${TRANSLATIONS[$i]}" >> $file_wordlist
     done
     clear
     echo ">> Wordlist saved to: $file_wordlist"
