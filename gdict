@@ -55,12 +55,17 @@ declare -a TRANSLATIONS
 
 # If script got input arguments then translate them with translate-shell
 if [[ $# -gt 0 ]]; then
-    trans $lang $@
+
+    for word in "$@"; do
+            # grep the word from the file (check whether it's already added), if it's not, translate and add/append it to the file
+            grep --color=never "^${word}${separator}" "$file_wordlist" || (translation="$(trans -no-ansi -show-translation-phonetics n  -show-translation-phonetics n -show-languages n --show-original n -show-prompt-message n -show-alternatives n en:hu "$word" | sed 's/adjective//;s/noun//;s/verb//;/^$/d;3~2d;s/^[ \t]*//' | uniq | paste -sd ',' | sed 's/,/, /g')"; echo "${word}${separator}${translation}" | tee --append "$file_wordlist")
+    done
+
 # If there isn't any input argument...
 else
 
-echo "Type 'h' and hit Enter for help"
-# ... then start a loop and run the script until terminated
+    echo "Type 'h' and hit Enter for help"
+    # ... then start a loop and run the script until it's terminated
     while true; do
 
         # Ask for a phrase (or word) to look for
@@ -118,8 +123,9 @@ echo "Type 'h' and hit Enter for help"
         # +get unique words with uniq
         # +join lines with paste
         # +add a space after each comma with sed
-        output=$(trans -no-ansi -show-translation-phonetics n  -show-translation-phonetics n -show-languages n --show-original n -show-prompt-message n -show-alternatives n $lang $phrase | sed 's/adjective//;s/noun//;s/verb//;/^$/d;3~2d;s/^[ \t]*//' | uniq | paste -sd ',' | sed 's/,/, /g')
-        echo -e "\n$output\n"
+        translation=$(trans -no-ansi -show-translation-phonetics n  -show-translation-phonetics n -show-languages n --show-original n -show-prompt-message n -show-alternatives n "$lang" "$phrase" | sed 's/adjective//;s/noun//;s/verb//;/^$/d;3~2d;s/^[ \t]*//' | uniq | paste -sd ',' | sed 's/,/, /g')
+
+        echo "${phrase}${separator}${translation}"
 
         # Add phrase to history array. If phrase is already on the list, then do nothing (prevent multiplicating same phrases).
         # Also add the translated words to the array
@@ -127,7 +133,7 @@ echo "Type 'h' and hit Enter for help"
             :
         else
             TWORD+=("$phrase")
-            TRANSLATIONS+=("$output")
+            TRANSLATIONS+=("$translation")
         fi
 
     # End of loop
