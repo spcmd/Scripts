@@ -1,0 +1,32 @@
+#!/bin/sh
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# http://spcmd.github.io
+# https://github.com/spcmd
+
+# List comics from the Comics directory and open them with zathura
+# Requires: zathura, zathura-cb (for cbr/cbz files)
+
+# Calibre Library directory
+dir_comics="$HOME/Comics"
+
+# Set dmenu style
+[ -f "$HOME/.dmenurc" ] && . "$HOME/.dmenurc" || DMENU='dmenu -i -l 10'
+
+# List ebooks sorted (sed out the path; show only the directories and the filenames)
+list_comics=$(find "$dir_comics" -iregex '.*\.\(cbr\|cbz\)$'| sed "s#$dir_comics/##" | sort)
+
+# Select ebook from dmenu
+get_comic=$(echo "$list_comics" | $DMENU)
+
+if [ ! -z "$get_comic" ]; then
+        notify-send "Opening comic:" "$(echo $get_comic | awk -F'/' '{print $NF}')"
+        zathura "$dir_comics/$get_comic"
+else
+    exit
+fi
