@@ -9,8 +9,8 @@
 # http://spcmd.github.io
 # https://github.com/spcmd
 
-# List comics from the Comics directory and open them with zathura
-# Requires: zathura, zathura-cb (for cbr/cbz files)
+# List comics from the Comics directory and open them with mcomix
+# Requires: mcomix
 
 # Calibre Library directory
 dir_comics="$HOME/Comics"
@@ -26,7 +26,7 @@ get_comic=$(echo "$list_comics" | $DMENU)
 
 if [ ! -z "$get_comic" ]; then
         notify-send "Opening comic:" "$(echo $get_comic | awk -F'/' '{print $NF}')"
-        zathura "$dir_comics/$get_comic"
+        mcomix "$dir_comics/$get_comic"
 else
     exit
 fi
