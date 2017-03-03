@@ -12,11 +12,11 @@
 # Usage: bind this script to key combinations (for example with sxhkd)
 
 case "$1" in
-    c) echo $'\U0109' | xsel -b && sh -c 'sleep 0.3; xdotool type "$(xsel -ob)"' ;;
-    g) echo $'\U011d' | xsel -b && sh -c 'sleep 0.3; xdotool type "$(xsel -ob)"' ;;
-    h) echo $'\U0125' | xsel -b && sh -c 'sleep 0.3; xdotool type "$(xsel -ob)"' ;;
-    j) echo $'\U0135' | xsel -b && sh -c 'sleep 0.3; xdotool type "$(xsel -ob)"' ;;
-    s) echo $'\U015d' | xsel -b && sh -c 'sleep 0.3; xdotool type "$(xsel -ob)"' ;;
-    u) echo $'\U016d' | xsel -b && sh -c 'sleep 0.3; xdotool type "$(xsel -ob)"' ;;
+    c) echo $'\U0109' | xsel -b && sh -c 'sleep 0.4; xdotool type "$(xsel -ob)"' ;;
+    g) echo $'\U011d' | xsel -b && sh -c 'sleep 0.4; xdotool type "$(xsel -ob)"' ;;
+    h) echo $'\U0125' | xsel -b && sh -c 'sleep 0.4; xdotool type "$(xsel -ob)"' ;;
+    j) echo $'\U0135' | xsel -b && sh -c 'sleep 0.4; xdotool type "$(xsel -ob)"' ;;
+    s) echo $'\U015d' | xsel -b && sh -c 'sleep 0.4; xdotool type "$(xsel -ob)"' ;;
+    u) echo $'\U016d' | xsel -b && sh -c 'sleep 0.4; xdotool type "$(xsel -ob)"' ;;
     *) exit 0;;
 esac

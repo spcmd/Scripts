@@ -124,6 +124,15 @@ if [[ $(pgrep bspwm) ]]; then
 
 fi
 
+# sway
+if [[ $(pgrep sway) ]]; then
+
+    # reload the mail block in i3blocks
+    pkill -RTMIN+2 i3blocks
+
+fi
+
+
 # Log: append entries--------------------------------------
 
 # Append log entires to the top (newest on the top)
