@@ -10,7 +10,6 @@
 
 # A wrapper script from pyrocore/rtcontrol using with rtorrent-ps
 
-
 # got this from: $d.name=
 # change bracketed strings and comma to '*' character
 name=$(echo "$2" | sed -re 's/\[.+\]/*/g;s/,/*/g')
@@ -18,17 +17,44 @@ name=$(echo "$2" | sed -re 's/\[.+\]/*/g;s/,/*/g')
 # got this from: $argument.0=
 tag=$3
 
+# colors
+BOLD_GREEN='\033[1;32m'
+RED='\033[0;31m'
+DEFAULT='\033[0m'
+
 # do the stuff
 case $1 in
+    # Some basic search options for command line usage
+    -n|--search-name)
+                    name=$2
+                    echo -e "$(basename $0):search> ${BOLD_GREEN}name:${DEFAULT} ${name}"
+                    rtcontrol "*${name}*"
+                    ;;
+    -t|--search-tag)
+                    tag=$2
+                    echo -e "$(basename $0):search> ${BOLD_GREEN}tag:${DEFAULT} ${tag}"
+                    rtcontrol tagged="${tag}"
+                    ;;
+    -s|--search)
+                    name=$2
+                    tag=$3
+                    echo -e "$(basename $0):search> ${BOLD_GREEN}name:${DEFAULT} ${name} ${BOLD_GREEN}tag:${DEFAULT} ${tag}"
+                    if [[ -z ${tag} ]]; then
+                        rtcontrol "*${name}*"
+                    else
+                        rtcontrol "*${name}*" tagged="${tag}"
+                    fi
+                    ;;
+    # These are used with key bindings in rtorrent
     --add-tag)
-            rtcontrol "${name}*" --tag="${tag}"
-            ;;
+                    rtcontrol -q "${name}*" --tag="${tag}"
+                    ;;
     --remove-tag)
-            rtcontrol "${name}*" --tag="-${tag}"
-            ;;
+                    rtcontrol -q "${name}*" --tag="-${tag}"
+                    ;;
     --remove-tag-all)
-            rtcontrol tagged="${tag}" --tag="-${tag}"
-            ;;
+                    rtcontrol -q tagged="${tag}" --tag="-${tag}"
+                    ;;
     *)
-        exit 0;
+        exit 1;
 esac
