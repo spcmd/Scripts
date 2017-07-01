@@ -24,12 +24,14 @@ echo "Duration (sec): $duration_sec"
 
 # 100 min
 if [[ $duration_sec -le 6000 ]]; then
+ echo "${filename}:"
  echo "Splitting into 2 pieces..."
  ffmpeg -i "$file" -metadata title="${filename}_1" -ss 00:00:00.000 -t 00:50:00.0 -acodec copy "${filename}_1.${extension}" -loglevel fatal
  ffmpeg -i "$file" -metadata title="${filename}_2" -ss 00:50:00.000 -t 00:50:00.0 -acodec copy "${filename}_2.${extension}" -loglevel fatal
  echo "Done!"
 # 150 min
 elif [[ $duration_sec -le 9000 ]]; then
+ echo "${filename}:"
  echo "Splitting into 3 pieces..."
  ffmpeg -i "$file" -metadata title="${filename}_1" -ss 00:00:00.000 -t 00:50:00.0 -acodec copy "${filename}_1.${extension}" -loglevel fatal
  ffmpeg -i "$file" -metadata title="${filename}_2" -ss 00:50:00.000 -t 00:50:00.0 -acodec copy "${filename}_2.${extension}" -loglevel fatal
@@ -37,6 +39,7 @@ elif [[ $duration_sec -le 9000 ]]; then
  echo "Done!"
 # 200 min
 elif [[ $duration_sec -le 12000 ]]; then
+ echo "${filename}:"
  echo "Splitting into 4 pieces..."
  ffmpeg -i "$file" -metadata title="${filename}_1" -ss 00:00:00.000 -t 00:50:00.0 -acodec copy "${filename}_1.${extension}" -loglevel fatal
  ffmpeg -i "$file" -metadata title="${filename}_2" -ss 00:50:00.000 -t 00:50:00.0 -acodec copy "${filename}_2.${extension}" -loglevel fatal
