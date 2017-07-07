@@ -19,9 +19,16 @@ filename="${filename%.*}"
 duration=$(ffprobe -i $file  -show_entries format=duration -v quiet -of csv="p=0" -sexagesimal | awk -F':' '{print $1":"$2}')
 duration_sec=$(ffprobe -i $file  -show_entries format=duration -v quiet -of csv="p=0" | awk -F'.' '{print $1}')
 
-
+# 50 min
+if [[ $duration_sec -le 3000 ]]; then
+ echo "${filename}:"
+ echo "Duration (H:M): $duration"
+ echo "Duration (sec): $duration_sec"
+ echo "No need to split. Setting the metadata..."
+ ffmpeg -i "$file" -metadata title="${filename}" -ss 00:00:00.000 -t 00:50:00.0 -acodec copy "${filename}_.${extension}" -loglevel fatal
+ echo "Done!"
 # 100 min
-if [[ $duration_sec -le 6000 ]]; then
+elif [[ $duration_sec -le 6000 ]]; then
  echo "${filename}:"
  echo "Duration (H:M): $duration"
  echo "Duration (sec): $duration_sec"
