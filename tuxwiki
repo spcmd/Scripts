@@ -22,7 +22,7 @@
 # Settings
 dir_tuxwiki=$HOME/Documents/tuxwiki
 dir_html_output=/tmp
-cmd_browser="luakit"
+cmd_browser=$BROWSER""
 bg_color_code="#AFD2E8"
 fg_color_code="#000"
 bg_color_codeblock="#f5f5f5"

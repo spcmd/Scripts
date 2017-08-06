@@ -31,7 +31,7 @@ VIDEO="url2mpv.sh"
 
 # Check whether the $DISPLAY is set (running on X) or not
 if [[ $DISPLAY ]]; then
-    DEFAULT="luakit"
+    DEFAULT="firefox"
     IMAGE="feh -."
     GIF="mpv --loop=inf"
 
