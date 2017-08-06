@@ -1,0 +1,57 @@
+#!/bin/bash
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# https://github.com/spcmd
+
+# moly.hu olvasmánylista exportáló
+# először be kell jelentkezni a moly.hu-ra a w3m-mel (cookie-k engedélyezése szükséges)
+
+#--------------------------------------------------------------------------------------------------------------
+
+# molyos felhasználóneved
+felhasznalonev=""
+
+# mentési könyvtár
+konyvtar=$HOME/Documents
+
+#--------------------------------------------------------------------------------------------------------------
+
+if [[ -z $felhasznalonev ]]; then
+    echo "Figyelmeztetés: Nincs megadva a felhasználónév. Állítsd be a scriptben a molyos felhasználónevedet!"
+    exit 1
+fi
+
+printf "Melyik éve(ke)t akarod exportálni? (Több is megadható, szóközzel elválasztva): "
+read -a evszam
+
+# w3m dump
+# awk kiszedi csak a táblázatot (olvasmánylista)
+# sed törli a felesleges sorokat
+# sed zárójelbe teszi az olvasott könyvek számát
+for evszam in ${evszam[@]}; do
+    w3m -dump https://moly.hu/tagok/$felhasznalonev/olvasasok?year=$evszam \
+        | awk '/Olvasmányok/{flag=1} /Részletes adatok/{flag=0} flag' \
+        | sed '3d;4d' \
+        | sed -r '1 s/[0-9]{,3}$/(&)/' \
+        > $konyvtar/moly_olvasmanylista_$evszam.txt
+
+        # információk beszúrása az első sorba (tabulátorokkal)
+        sed  -i "1i $felhasznalonev \t \t \t \t \t \t \t \t \t \t \t \t Exportálva: $(date +%Y.%m.%d)" $konyvtar/moly_olvasmanylista_$evszam.txt
+        echo "Export kész: $konyvtar/moly_olvasmanylista_$evszam.txt"
+done
+
+# dumpoljuk az időpont nélkülieket is
+w3m -dump https://moly.hu/tagok/$felhasznalonev/olvasasok?year= \
+        | awk '/Olvasmányok/{flag=1} /Részletes adatok/{flag=0} flag' \
+        | sed '3d;4d' \
+        | sed -r '1 s/[0-9]{,3}$/(&)/' \
+        > $konyvtar/moly_olvasmanylista_idopont_nelkuliek.txt
+
+# információk beszúrása az első sorba (tabulátorokkal)
+sed  -i "1i $felhasznalonev \t \t \t \t \t \t \t \t \t \t \t \t Exportálva: $(date +%Y.%m.%d)" $konyvtar/moly_olvasmanylista_idopont_nelkuliek.txt
+echo "Export kész: $konyvtar/moly_olvasmanylista_idopont_nelkuliek.txt"
