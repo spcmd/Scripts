@@ -6,7 +6,6 @@
 # |___| .__/ \___|_| |_| |_|\__,_|
 #     |_|
 # Created by: spcmd
-# http://spcmd.github.io
 # https://github.com/spcmd
 
 # Split podcasts in every 50 mins
