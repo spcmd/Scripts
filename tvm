@@ -1,0 +1,55 @@
+#!/bin/bash
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+# https://github.com/spcmd
+
+url=https://www.tvmustra.hu/tvmusor
+file_keywords=$HOME/.tvd_highlights
+reset_color=$(echo -e '\033[0m') # do not modify this!
+keyword_color=$(echo -e '\033[1;36m')
+
+highlight_color="0;33" # highlight color for the date/time
+night_time_regex="2[0-9]:[0-9]{2}"
+
+channels=("COOL" \
+        "TV2" \
+        "RTLKLUB" \
+        "VIASAT3" \
+        "VIASAT6" \
+        "SUPERTV2" \
+        "FILMPLUSSZ" \
+        "SOROZATPLUSSZ" \
+        "AXN" \
+        "AMC" \
+        "PARAMOUNT" \
+        "MOZIPLUSZ" \
+        "FILMCAFE" \
+        "FEM3" \
+        "PRIME" \
+        "STORYTV" \
+        "STORY5" \
+        "RTL2" \
+        "RTLPLUSZ" \
+        )
+
+highlight_keywords() {
+        if [[ -f $file_keywords ]]; then
+            # 1. sed: remove blank lines (prevents the failing of sed color highlighting)
+            # 2. sed: collapse lines into a single line and use pipes to seperate the keywords
+            # 3. sed: remove all pipes from the end of the line (prevents the failing of sed color highlighting)
+            keywords_list=$(sed -e '/^\s*$/d' -e ':a;N;$!ba;s/\n/|/g' -re 's/[|]{1,}$//' $file_keywords)
+            sed -r "s/($keywords_list)/${keyword_color}&$reset_color/ig"
+        else
+            sed "" # do nothing
+        fi
+    }
+
+for tv in ${channels[@]}; do
+    echo "$tv" | sed -r 's/PLUSSZ|PLUSZ/+/g'
+    w3m -dump $url/$tv | awk 'BEGIN{IGNORECASE = 1}/következő nap/{flag=1} /vissza az oldal/{flag=0} flag' | sed '/Tv műsor.../d;1d' | GREP_COLOR="$highlight_color" grep -E --color=always "($night_time_regex)" | highlight_keywords
+done
