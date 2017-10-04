@@ -35,6 +35,7 @@ channels=("COOL" \
         "STORY5" \
         "RTL2" \
         "RTLPLUSZ" \
+        "SONYMOVIE"
         )
 
 highlight_keywords() {
