@@ -98,5 +98,6 @@ case $1 in
                 ;;
     -g|--gist-format) gist_format;;
     -c|--sort-by-channel) sort_by_channel;;
-    -t|--sort-by-time|""|*) sort_by_time;;
+    -t|--sort-by-time) sort_by_time;;
+    ""|*) sort_by_channel;;
 esac

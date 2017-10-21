@@ -18,4 +18,5 @@ filename="${filename%.*}"
 echo "${filename}:"
 echo "Setting the metadata..."
 ffmpeg -i "$file" -metadata title="${filename}" -acodec copy "${filename}_.${extension}" -loglevel fatal
+rm "$file"
 echo "Done!"
