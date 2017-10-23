@@ -56,7 +56,7 @@ if [[ $DISPLAY ]]; then
             ${PRE}urxvtc -e mutt1 -F ~/.mutt/account.1.muttrc -- "${url}"
             ;;
         *.mp3)
-            ${PRE}urxvtc -hold -e wget -P ~/Downloads "${url}"
+            ${PRE}urxvtc -e wget -P ~/Downloads "${url}"
             ;;
         *)
             ${DEFAULT} "$url"
