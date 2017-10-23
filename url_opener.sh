@@ -55,6 +55,9 @@ if [[ $DISPLAY ]]; then
         mailto:*)
             ${PRE}urxvtc -e mutt1 -F ~/.mutt/account.1.muttrc -- "${url}"
             ;;
+        *.mp3)
+            ${PRE}urxvtc -hold -e wget -P ~/Downloads "${url}"
+            ;;
         *)
             ${DEFAULT} "$url"
             ;;
@@ -83,6 +86,9 @@ else
             ;;
         *imgur.com/*)
             $0$q $(curl -s "$url" | sed -n 's/^.*<link rel="image_src"\s\+href="\([^"]\+\)".*$/\1/p')
+            ;;
+        *.mp3)
+            wget -P ~/Downloads "${url}"
             ;;
         *)
             ${DEFAULT} "$url"

@@ -34,6 +34,13 @@ append_to_playlist_DPC() {
     echo "file:///SDCard/BlackBerry/podcasts/$file_renamed" >> "$file_playlist"
 }
 
+append_to_playlist_AHD() {
+    file_playlist="$dir_podcasts/AHD.m3u"
+    echo "Appending $file_renamed to AHD playlist..."
+    echo "#EXTINF:-1,$filename_wo_ext" >> "$file_playlist"
+    echo "file:///SDCard/BlackBerry/podcasts/$file_renamed" >> "$file_playlist"
+}
+
 append_to_playlist_VEGYES() {
     file_playlist="$dir_podcasts/VEGYES.m3u"
     echo "Appending $file_renamed to VEGYES playlist..."
@@ -41,7 +48,7 @@ append_to_playlist_VEGYES() {
     echo "file:///SDCard/BlackBerry/podcasts/$file_renamed" >> "$file_playlist"
 }
 show_help() {
-    echo "Playlist names: szfc, dpc, ihsz, vegyes"
+    echo "Playlist names: szfc, dpc, ahd, ihsz, vegyes"
 }
 
 case $1 in
@@ -78,6 +85,18 @@ case $1 in
             echo "Moving $file_renamed to Blackberry's podcasts dir..."
             mv "$file_renamed" "$dir_podcasts"
             append_to_playlist_DPC
+            echo "Done!"
+        done
+        ;;
+    ahd)
+        for file in ${@:2}; do
+            file_renamed=$(echo "$file" | sed 's/á/a/g;s/é/e/g;s/í/i/g;s/[óöő]/o/g;s/[üűú]/u/g;s/ /_/g')
+            filename_wo_ext="${file_renamed%.*}"
+            echo "Renaming $file to: $file_renamed"
+            mv "$file" "$file_renamed"
+            echo "Moving $file_renamed to Blackberry's podcasts dir..."
+            mv "$file_renamed" "$dir_podcasts"
+            append_to_playlist_AHD
             echo "Done!"
         done
         ;;
