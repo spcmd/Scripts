@@ -68,7 +68,7 @@ case "$1" in
     -*) echo "Invalid option. Use '$0 -h' for help." ;;
     *)
         if [ -z "$1" ]; then
-            tac "$FILE_NOTES" | colorize_output
+            cat "$FILE_NOTES" | colorize_output
         else
             echo "$(date +"[%Y-%b-%d %H:%M]")" "$@" >> "$FILE_NOTES"
         fi
