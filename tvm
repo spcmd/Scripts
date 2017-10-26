@@ -35,7 +35,10 @@ channels=("COOL" \
         "STORY5" \
         "RTL2" \
         "RTLPLUSZ" \
-        "SONYMOVIE"
+        "SONYMOVIE" \
+        "COMEDY" \
+        "SPORT1" \
+        "SPORT2"
         )
 
 highlight_keywords() {
@@ -44,7 +47,7 @@ highlight_keywords() {
             # 2. sed: collapse lines into a single line and use pipes to seperate the keywords
             # 3. sed: remove all pipes from the end of the line (prevents the failing of sed color highlighting)
             keywords_list=$(sed -e '/^\s*$/d' -e ':a;N;$!ba;s/\n/|/g' -re 's/[|]{1,}$//' $file_keywords)
-            sed -r "s/($keywords_list)/${keyword_color}&$reset_color/ig"
+            sed -r "s/($keywords_list) [0-9]?\.?/${keyword_color}&$reset_color/ig"
         else
             sed "" # do nothing
         fi
@@ -56,36 +59,42 @@ plain_highlight_keywords() {
             # 2. sed: collapse lines into a single line and use pipes to seperate the keywords
             # 3. sed: remove all pipes from the end of the line (prevents the failing of sed color highlighting)
             keywords_list=$(sed -e '/^\s*$/d' -e ':a;N;$!ba;s/\n/|/g' -re 's/[|]{1,}$//' $file_keywords)
-            sed -r "s/($keywords_list)/>>>> & <<<</ig"
+            sed -r "s/($keywords_list) [0-9]?\.?/>>>> & <<<</ig"
         else
             sed "" # do nothing
         fi
 }
 
-
 sort_by_channel() {
-for tv in ${channels[@]}; do
-    echo "$tv" | sed -r 's/PLUSSZ|PLUSZ/+/g'
-    w3m -dump $url/$tv | awk 'BEGIN{IGNORECASE = 1}/következő nap/{flag=1} /vissza az oldal/{flag=0} flag' | sed '/Tv műsor.../d;1d' | GREP_COLOR="$highlight_color" grep -E --color=always "($night_time_regex)" | highlight_keywords
-done
+    for tv in ${channels[@]}; do
+        echo "$tv" | sed -r 's/PLUSSZ|PLUSZ/+/g'
+        w3m -dump $url/$tv | awk 'BEGIN{IGNORECASE = 1}/következő nap/{flag=1} /vissza az oldal/{flag=0} flag' | sed '/Tv műsor.../d;1d' | GREP_COLOR="$highlight_color" grep -E --color=always "($night_time_regex)" | highlight_keywords
+    done
 }
 
 sort_by_time() {
-for tv in ${channels[@]}; do
-    w3m -dump $url/$tv | awk 'BEGIN{IGNORECASE = 1}/következő nap/{flag=1} /vissza az oldal/{flag=0} flag' | sed '/Tv műsor.../d;1d' | GREP_COLOR="$highlight_color" grep -E --color=always "($night_time_regex)" | highlight_keywords | sed -re "s/$/  ($tv)/;s/PLUSSZ|PLUSZ/+/g" >> "$file_tvm_cache"
-done
+    for tv in ${channels[@]}; do
+        w3m -dump $url/$tv | awk 'BEGIN{IGNORECASE = 1}/következő nap/{flag=1} /vissza az oldal/{flag=0} flag' | sed '/Tv műsor.../d;1d' | GREP_COLOR="$highlight_color" grep -E --color=always "($night_time_regex)" | highlight_keywords | sed -re "s/$/  ($tv)/;s/PLUSSZ|PLUSZ/+/g" >> "$file_tvm_cache"
+    done
     sort "$file_tvm_cache"
     rm "$file_tvm_cache" # prevent appending new list to the old
 }
 
-gist_format() {
- for tv in ${channels[@]}; do
-    w3m -dump $url/$tv | awk 'BEGIN{IGNORECASE = 1}/következő nap/{flag=1} /vissza az oldal/{flag=0} flag' | sed '/Tv műsor.../d;1d' | grep -E --color=never "($night_time_regex)" | plain_highlight_keywords | sed -re "s/$/ ($tv)/;s/PLUSSZ|PLUSZ/+/g" >> "$file_tvm_cache"
-done
+gist_format_time() {
+     for tv in ${channels[@]}; do
+        w3m -dump $url/$tv | awk 'BEGIN{IGNORECASE = 1}/következő nap/{flag=1} /vissza az oldal/{flag=0} flag' | sed '/Tv műsor.../d;1d' | grep -E --color=never "($night_time_regex)" | plain_highlight_keywords | sed -re "s/$/ ($tv)/;s/PLUSSZ|PLUSZ/+/g" >> "$file_tvm_cache"
+    done
     echo Frissítve: $(date +'%Y.%m.%d. %H:%M')
     sort "$file_tvm_cache"
     rm "$file_tvm_cache" # prevent appending new list to the old
+}
 
+gist_format_channel() {
+    echo Frissítve: $(date +'%Y.%m.%d. %H:%M')
+    for tv in ${channels[@]}; do
+        echo "$tv" | sed -r 's/PLUSSZ|PLUSZ/+/g'
+        w3m -dump $url/$tv | awk 'BEGIN{IGNORECASE = 1}/következő nap/{flag=1} /vissza az oldal/{flag=0} flag' | sed '/Tv műsor.../d;1d' | grep -E --color=never "($night_time_regex)" | plain_highlight_keywords
+    done
 }
 
 # do the stuff
@@ -94,9 +103,11 @@ case $1 in
                 echo "Options:"
                 echo "-c, --sort-by-channel         sort list by channels"
                 echo "-t, --sort-by-time            sort list by time"
-                echo "-g, --gist-format             plaintext format for gist/github"
+                echo "-g, --gist-format-time        plaintext format for gist/github, sorted by time"
+                echo "-G, --gist-format-channel     plaintext format for gist/github, sorted by channels"
                 ;;
-    -g|--gist-format) gist_format;;
+    -g|--gist-format-time) gist_format_time;;
+    -G|--gist-format-channel) gist_format_channel;;
     -c|--sort-by-channel) sort_by_channel;;
     -t|--sort-by-time) sort_by_time;;
     ""|*) sort_by_channel;;
