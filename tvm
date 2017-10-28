@@ -47,7 +47,7 @@ highlight_keywords() {
             # 2. sed: collapse lines into a single line and use pipes to seperate the keywords
             # 3. sed: remove all pipes from the end of the line (prevents the failing of sed color highlighting)
             keywords_list=$(sed -e '/^\s*$/d' -e ':a;N;$!ba;s/\n/|/g' -re 's/[|]{1,}$//' $file_keywords)
-            sed -r "s/($keywords_list) [0-9]?\.?/${keyword_color}&$reset_color/ig"
+            sed -r "s/($keywords_list) ?[0-9]?\.?/${keyword_color}&$reset_color/ig"
         else
             sed "" # do nothing
         fi
@@ -59,7 +59,7 @@ plain_highlight_keywords() {
             # 2. sed: collapse lines into a single line and use pipes to seperate the keywords
             # 3. sed: remove all pipes from the end of the line (prevents the failing of sed color highlighting)
             keywords_list=$(sed -e '/^\s*$/d' -e ':a;N;$!ba;s/\n/|/g' -re 's/[|]{1,}$//' $file_keywords)
-            sed -r "s/($keywords_list) [0-9]?\.?/>>>> & <<<</ig"
+            sed -r "s/($keywords_list) ?[0-9]?\.?/>>>> & <<<</ig"
         else
             sed "" # do nothing
         fi
