@@ -108,7 +108,7 @@ case $1 in
                 ;;
     -g|--gist-format-time) gist_format_time;;
     -G|--gist-format-channel) gist_format_channel;;
-    -c|--sort-by-channel) sort_by_channel;;
-    -t|--sort-by-time) sort_by_time;;
-    ""|*) sort_by_channel;;
+    -c|--sort-by-channel) sort_by_channel | less -R;;
+    -t|--sort-by-time) sort_by_time | less -R;;
+    ""|*) sort_by_channel | less -R;;
 esac
