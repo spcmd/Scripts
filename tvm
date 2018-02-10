@@ -37,6 +37,9 @@ channels=("COOL" \
         "RTLPLUSZ" \
         "SONYMOVIE" \
         "COMEDY" \
+        "M1HD" \
+        "M2HD" \
+        "DUNA" \
         "SPORT1" \
         "SPORT2"
         )
