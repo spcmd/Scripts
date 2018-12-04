@@ -13,7 +13,7 @@
 # Requires: mcomix
 
 # Calibre Library directory
-dir_comics="$HOME/Calibre Comics"
+dir_comics="$HOME/Comics"
 
 # Set dmenu style
 [ -f "$HOME/.dmenurc" ] && . "$HOME/.dmenurc" || DMENU='dmenu -i -l 10'

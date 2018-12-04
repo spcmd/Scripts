@@ -1,0 +1,72 @@
+#!/bin/sh
+#                               _
+#  ___ _ __   ___ _ __ ___   __| |
+# / __| '_ \ / __| '_ ` _ \ / _` |
+# \__ | |_) | (__| | | | | | (_| |
+# |___| .__/ \___|_| |_| |_|\__,_|
+#     |_|
+# Created by: spcmd
+
+FILE_CLOG=$HOME/Documents/cLOG.txt
+
+colorize_output(){ sed -r -e "s/\[.+\]/\o033[1;34m&\o033[0m/" -e "s/@.+/\o033[0;30;36;3m & \o033[0m/"; }
+
+usage() {
+cat <<EOF
+clog file's location: $FILE_CLOG
+Usage: $(basename "$0") [option] <clog|keyword>
+
+Options:
+<clog>                                      Add a clog (you can add a clog without using the -a or the --add option)
+-a, --add <clog>                            Add a clog
+-b, --backup                                Create a backup copy in the same directory
+-e, --edit                                  Edit clog file directory (with $EDITOR)
+-r, --remove <keyword>                      Remove clog(s) by keyword (a keyword can be any word, tag, date or time)
+-R, --remove-all                            Remove ALL clogs (emergency backup will be created in /tmp)
+-l, --list                                  List clogs (show newer first)
+-L, --list-oldest-first                     List clogs (show oldest first)
+-s, --search <keyword>                      Search in the clogs (case-insensitive)
+-S, --search-case-sensitive <keyword>       Search in the clogs (case-sensitive)
+-h, --help                                  This help
+
+Important: Use quoting for the clogs! Use @ for tagging, e.g.:
+
+clog "This is my first clog @mytag"         This will add a clog with the tag @mytag
+clog -r "13:22"                             This will remove clog(s) with the 13:22 timestamp
+clog -r "@mytag"                            This will remove clog(s) with the tag @mytag
+
+EOF
+}
+
+case "$1" in
+
+    -b|--backup) cp "$FILE_CLOG" "${FILE_CLOG}.bak" ;;
+    -r|--remove) sed -i "/$2/d" "$FILE_CLOG" ;;
+    -R|--remove-all)
+                    echo "Remove ALL clogs? Are you sure [yY/nN]"
+                    read -r answer
+                    if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+                        cp "$FILE_CLOG" /tmp
+                        rm "$FILE_CLOG"
+                        echo "$FILE_CLOG has been deleted. Now you can find a copy in /tmp (for emergency) until the next reboot. Delete manually if you wish."
+                    else
+                        echo "Cancelled."
+                    fi
+                    ;;
+
+    -l|--list) tac "$FILE_CLOG" | colorize_output ;;
+    -L|--list-oldest-first) cat "$FILE_CLOG" | colorize_output ;;
+    -s|--search) grep -i "$2" "$FILE_CLOG" | colorize_output ;;
+    -S|--search-case-sensitive) grep "$2" "$FILE_CLOG" | colorize_output;;
+    -e|--edit) $EDITOR "$FILE_CLOG" ;;
+    -h|--help) usage;;
+    -a|--add) echo "$(date +"[%Y-%b-%d %H:%M]") $2" >> "$FILE_CLOG" ;;
+    -*) echo "Invalid option. Use '$0 -h' for help." ;;
+    *)
+        if [ -z "$1" ]; then
+            cat "$FILE_CLOG" | colorize_output
+        else
+            echo "$(date +"[%Y-%b-%d %H:%M]")" "$@" >> "$FILE_CLOG"
+        fi
+        ;;
+esac
