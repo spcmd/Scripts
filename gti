@@ -1,0 +1,45 @@
+#!/bin/bash
+# Simple translate script with history stored in a file, using Translate Shell (https://github.com/soimort/translate-shell)
+
+# save translated words to this file (dictionary)
+file_wordlist="$HOME/Documents/gt-dict.txt"
+# separate the original word from the translations with this
+separator=" : "
+
+# If script got input arguments then translate them with translate-shell
+if [[ $# -gt 0 ]]; then
+
+    for word in "${@}"; do
+        # grep the word from the file (check whether it's already added), if it's not, translate and add/append it to the file
+        grep --color=never "^${word}${separator}" "$file_wordlist" || (translation="$(trans -no-ansi -show-translation-phonetics n  -show-translation-phonetics n -show-languages n --show-original n -show-prompt-message n -show-alternatives n en:hu "$word" | sed 's/adjective//;s/noun//;s/verb//;/^$/d;3~2d;s/^[ \t]*//' | uniq | paste -sd ',' | sed 's/,/, /g')"; echo "${word}${separator}${translation}" | tee --append "$file_wordlist")
+    done
+
+# If there isn't any input argument...
+else
+
+# ... then start a loop and run the script until terminated
+    while true; do
+
+        # Ask for a word
+        read -p $'TRANSLATE:> ' wordlist
+
+        # If word is "c" (abbreviation for clear) script clears the terminal and continues the loop
+        if [[ $wordlist == "c" ]]; then
+            clear
+            continue
+        # If word is "q" (abbreviation for exit), script exits the program by breaking the loop
+        elif [[ $wordlist == "q" ]]; then
+            break
+        else
+            # read the wordlist into an array (separated by a space)
+            IFS=' ' read -ra WORDS <<< "$wordlist"
+            for word in "${WORDS[@]}"; do
+                # grep the word from the file (check whether it's already added), if it's not, translate and add/append it to the file
+                grep --color=never "^${word}${separator}" "$file_wordlist" || (translation="$(trans -no-ansi -show-translation-phonetics n  -show-translation-phonetics n -show-languages n --show-original n -show-prompt-message n -show-alternatives n en:hu "$word" | sed 's/adjective//;s/noun//;s/verb//;/^$/d;3~2d;s/^[ \t]*//' | uniq | paste -sd ',' | sed 's/,/, /g')"; echo "${word}${separator}${translation}" | tee --append "$file_wordlist")
+            done
+        fi
+
+    # End of loop
+    done
+
+fi
