@@ -20,4 +20,4 @@ for i in *; do
 	[[ $i == $file ]] && c=$((${#arr[@]} - 1))
 done
 
-exec feh "$@" -- "${arr[@]:c}" "${arr[@]:0:c}"
+exec feh --edit "$@" -- "${arr[@]:c}" "${arr[@]:0:c}"
