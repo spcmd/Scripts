@@ -38,7 +38,8 @@ if [[ $DISPLAY ]]; then
     url=$1
     case $url in
         http*://*youtube.com/watch?*|http*://youtu.be/watch?*|http*://youtu.be/*)
-            ${PRE}${VIDEO} "$url"
+            #${PRE}${VIDEO} "$url"
+            ${PRE}urxvtc -hold -e youtube-dl -f "best[height=720]" -o "~/Downloads/%(title)s.%(ext)s" "${url}"
             ;;
         *.jpg*|*.png*)
             ${PRE}${IMAGE} "$url"
