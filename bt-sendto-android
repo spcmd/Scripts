@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for file in "$@"; do
+    filename_wo_spaces=$(mv "$file" $(echo "$file" | sed 's/ /_/g'))
+    blueman-sendto "$filename_wo_spaces"
+done
